@@ -19,7 +19,8 @@
   .btn { margin-left:6px; padding:6px 14px; background:transparent; color:#00f0ff; border:1px solid #00f0ff; cursor:pointer;
          font-family:inherit; letter-spacing:1px; text-transform:uppercase; }
   .btn:hover { background:#00f0ff; color:#07080c; box-shadow:0 0 12px #00f0ff; }
-  .pink { color:#07080c; background:#fcee0a; border-color:#fcee0a; }
+  .plus { padding:0 8px; margin-left:10px; font-size:14px; color:#fcee0a; border-color:#fcee0a; letter-spacing:0; }
+  .pink {color:#07080c; background:#fcee0a; border-color:#fcee0a; }
   .pink:hover { background:#fff36b; box-shadow:0 0 14px #fcee0a; color:#07080c; }
   .big { padding:10px 18px; margin:4px; font-size:14px; }
   .grid { display:flex; flex-wrap:wrap; }
@@ -132,30 +133,33 @@ function card(name, target, dir) {
 }
 
 function build() {
-  var html = "";
-  for (var r = 0; r < CFG.roots.length; r++) {
-    if (!fso.FolderExists(CFG.roots[r][1])) continue;
-    html += "<h2>" + esc(CFG.roots[r][0]) + "</h2><div class='grid'>";
-    for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
-      var d = e.item();
-      if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
-      var target = pickTarget(d.Path);
-      if (target) html += card(d.Name, target, d.Path);
-    }
-    html += "</div>";
-  }
-  // games added by picking an exe (add-game.ps1), kept where they are
-  var EXTRA = APP + "\\extra-games.txt";
+  // games added by picking an exe (add-game.ps1), kept where they are: name<TAB>exe<TAB>category
+  var extras = [], EXTRA = APP + "\\extra-games.txt";
   if (fso.FileExists(EXTRA)) {
-    var ts = fso.OpenTextFile(EXTRA, 1, false, -1), xh = "";
+    var ts = fso.OpenTextFile(EXTRA, 1, false, -1);
     while (!ts.AtEndOfStream) {
       var parts = ts.ReadLine().split("\t");
-      if (parts.length < 2 || !fso.FileExists(parts[1])) continue; // skip games that were moved/deleted
-      xh += card(parts[0], parts[1], fso.GetParentFolderName(parts[1]));
+      if (parts.length >= 2 && fso.FileExists(parts[1])) extras.push(parts); // skip games that were moved/deleted
     }
     ts.Close();
-    if (xh) html += "<h2>其他（自己加嘅）</h2><div class='grid'>" + xh + "</div>";
   }
+  var html = "", r, x;
+  for (r = 0; r < CFG.roots.length; r++) {
+    var sec = "";
+    if (fso.FolderExists(CFG.roots[r][1])) {
+      for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
+        var d = e.item();
+        if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
+        var target = pickTarget(d.Path);
+        if (target) sec += card(d.Name, target, d.Path);
+      }
+    }
+    for (x = 0; x < extras.length; x++) if (extras[x][2] == CFG.roots[r][0]) { sec += card(extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1])); extras[x].used = true; }
+    html += "<h2>" + esc(CFG.roots[r][0]) + " <button class='btn plus' title='加遊戲入呢欄' onclick='addGame(" + r + ")'>＋</button></h2><div class='grid'>" + sec + "</div>";
+  }
+  var xh = ""; // no category, or a category that no longer exists
+  for (x = 0; x < extras.length; x++) if (!extras[x].used) xh += card(extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1]));
+  if (xh) html += "<h2>其他</h2><div class='grid'>" + xh + "</div>";
   if (!html) html = "<p style='margin-left:4px;color:#00f0ff'>未有遊戲。撳「＋ 揀 exe 加遊戲」，或者喺 config.txt 加 root=名|資料夾。</p>";
   document.getElementById("list").innerHTML = html;
 }
@@ -164,7 +168,7 @@ function buildButtons() {
   var b = "";
   if (CFG.mtool) b += "<button class='btn pink' onclick='openMTool()'>開 MTool</button>";
   for (var r = 0; r < CFG.roots.length; r++) b += "<button class='btn' onclick='importZip(" + r + ")'>匯入 zip → " + esc(CFG.roots[r][0]) + "</button>";
-  b += "<button class='btn' onclick='addGame()'>＋ 揀 exe 加遊戲</button>";
+  b += "<button class='btn' onclick='addGame(-1)'>＋ 揀 exe 加遊戲</button>";
   b += "<button class='btn' onclick='openSettings()'>⚙ 設定</button>";
   document.getElementById("buttons").innerHTML = b;
   document.getElementById("mtoolPick").style.display = CFG.mtool ? "" : "none";
@@ -214,7 +218,11 @@ function ps(script, args, show) {
   wsh.Run('powershell -NoProfile -ExecutionPolicy Bypass' + (show ? '' : ' -WindowStyle Hidden') + ' -File "' + APP + '\\' + script + '" ' + args, show ? 1 : 0, true);
   location.reload(); // rescan
 }
-function addGame() { ps("add-game.ps1", "", false); }
+function addGame(def) { // def: index of the section whose ＋ was clicked (preselects that category)
+  var labels = [];
+  for (var r = 0; r < CFG.roots.length; r++) labels.push(CFG.roots[r][0].replace(/"/g, ""));
+  ps("add-game.ps1", '-Categories "' + labels.join("|") + '"' + (def >= 0 ? ' -Default "' + labels[def] + '"' : ''), false);
+}
 function importZip(r) {
   document.getElementById("msg").innerText = "揀壓縮檔（可以一次揀幾個），解壓完會自動加入遊戲庫…";
   ps("import.ps1", '-Root "' + CFG.roots[r][1] + '" -Zips "' + CFG.zips + '"', true);
