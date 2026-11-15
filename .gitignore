@@ -1,0 +1,5 @@
+config.txt
+extra-games.txt
+covers/*
+!covers/.gitkeep
+Game Zips/

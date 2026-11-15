@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Local Game Launcher</title>
+<hta:application id="app" applicationname="LocalGameLauncher" border="thick" windowstate="maximize" singleinstance="yes" icon="logo.ico">
+<style>
+  /* generic neon-cyberpunk look: yellow + cyan on near-black, scanlines, HUD labels */
+  body { margin:0; padding:20px 24px; color:#e8f7ff; font-family:"Consolas","Microsoft JhengHei",monospace;
+         background:#07080c repeating-linear-gradient(0deg, rgba(0,240,255,.035) 0, rgba(0,240,255,.035) 1px, transparent 1px, transparent 3px); }
+  h1 { font-size:26px; margin:0 0 10px 4px; font-weight:bold; color:#fcee0a; letter-spacing:3px; text-transform:uppercase;
+       text-shadow:2px 0 #ff2a6d, -2px 0 #00f0ff, 0 0 12px rgba(252,238,10,.6); }
+  h2 { font-size:13px; color:#00f0ff; margin:24px 0 8px 4px; font-weight:normal; letter-spacing:4px; text-transform:uppercase;
+       border-bottom:1px solid #00f0ff; padding-bottom:4px; text-shadow:0 0 6px #00f0ff; }
+  h2:before { content:"// "; color:#ff2a6d; }
+  input, textarea { background:#0d1018; color:#e8f7ff; border:1px solid #00f0ff; font-family:inherit; padding:5px 8px; box-sizing:border-box; }
+  #search { margin:0 0 4px 4px; width:260px; font-size:14px; border-left:4px solid #fcee0a; }
+  .btn { margin-left:6px; padding:6px 14px; background:transparent; color:#00f0ff; border:1px solid #00f0ff; cursor:pointer;
+         font-family:inherit; letter-spacing:1px; text-transform:uppercase; }
+  .btn:hover { background:#00f0ff; color:#07080c; box-shadow:0 0 12px #00f0ff; }
+  .pink { color:#07080c; background:#fcee0a; border-color:#fcee0a; }
+  .pink:hover { background:#fff36b; box-shadow:0 0 14px #fcee0a; color:#07080c; }
+  .big { padding:10px 18px; margin:4px; font-size:14px; }
+  .grid { display:flex; flex-wrap:wrap; }
+  .card { width:220px; margin:7px; background:#0d1018; cursor:pointer; border:1px solid #1f3a44; border-top:3px solid #fcee0a; position:relative; }
+  .card:hover { border-color:#00f0ff; border-top-color:#ff2a6d; box-shadow:0 0 16px rgba(0,240,255,.55); }
+  .cover img { max-width:220px; max-height:165px; }
+  .cover { width:220px; height:165px; background:#050608; overflow:hidden; display:flex; align-items:center; justify-content:center;
+           text-align:center; font-size:16px; color:#3d6b78; padding:0 10px; box-sizing:border-box; }
+  .name { padding:8px; font-size:12px; height:34px; overflow:hidden; color:#e8f7ff; border-top:1px solid #1f3a44; }
+  .card:hover .name { color:#fcee0a; }
+  #msg { color:#fcee0a; margin-left:4px; height:18px; text-shadow:0 0 6px #fcee0a; }
+  .panel { background:#0b0d14; border:1px solid #00f0ff; border-left:4px solid #fcee0a; box-shadow:0 0 24px rgba(0,240,255,.35); padding:20px; }
+  .label { color:#00f0ff; letter-spacing:2px; font-size:12px; }
+</style>
+</head>
+<body>
+<h1><img src="logo.png" style="width:32px;height:32px;vertical-align:middle;margin-right:8px"><span id="title">Local Game Launcher</span></h1>
+<input id="search" placeholder="搵遊戲…" onkeyup="filter()">
+<span id="buttons"></span>
+<div id="choose" onclick="if(event.srcElement==this)this.style.display='none'" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9">
+  <div class="panel" style="width:480px;margin:180px auto;text-align:center">
+    <div id="chooseName" style="margin-bottom:8px;font-size:15px"></div>
+    <div id="choosePath" style="margin-bottom:16px;font-size:12px;color:#00f0ff;word-break:break-all"></div>
+    <button class="btn big" onclick="pick(false)">直接開</button>
+    <button class="btn big pink" id="mtoolPick" onclick="pick(true)">用 MTool 開</button>
+    <button class="btn big" onclick="openFolder()">打開資料夾</button>
+    <button class="btn big" onclick="changeCover()">換封面</button>
+  </div>
+</div>
+<div id="settings" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9">
+  <div class="panel" style="width:640px;margin:70px auto;font-size:13px">
+    <div style="font-size:18px;margin-bottom:12px;color:#fcee0a;letter-spacing:3px">// 設定 SETTINGS</div>
+    標題<br><input id="sTitle" style="width:100%;margin-bottom:10px">
+    遊戲資料夾（每行一個：顯示名|資料夾）<button class="btn" onclick="browseRoot()">＋ 揀資料夾</button><br>
+    <textarea id="sRoots" rows="5" style="width:100%;margin:4px 0 10px"></textarea>
+    壓縮檔存放位置（匯入 zip 後搬去呢度）<button class="btn" onclick="browseInto('sZips')">揀</button><br><input id="sZips" style="width:100%;margin-bottom:10px">
+    MTool 資料夾（留空就唔顯示 MTool）<button class="btn" onclick="browseInto('sMtool')">揀</button><br><input id="sMtool" style="width:100%;margin-bottom:10px">
+    隱藏名包含以下字嘅資料夾（正規表示式，可留空）<br><input id="sHide" style="width:100%;margin-bottom:14px">
+    <button class="btn big pink" onclick="saveSettings()">儲存</button>
+    <button class="btn big" onclick="shellApp.ShellExecute(COVERS)">打開封面資料夾</button>
+    <button class="btn big" onclick="document.getElementById('settings').style.display='none'">取消</button>
+  </div>
+</div>
+<div id="msg"></div>
+<div id="list"></div>
+<script>
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var shellApp = new ActiveXObject("Shell.Application");
+var wsh = new ActiveXObject("WScript.Shell");
+// folder this .hta lives in; every other file is relative to it
+var APP = fso.GetParentFolderName(decodeURIComponent(location.href.replace(/^file:\/*/i, "")).replace(/\//g, "\\"));
+var COVERS = APP + "\\covers\\";
+var SKIP_EXE = /^(UnityCrashHandler|Config|notification_helper|Setup|unins|crash)/i;
+
+// config.txt (UTF-8): title=, root=Label|Folder (repeatable), zips=, mtool=, hide= (regex of folder names to skip)
+var CFG = { title: "Local Game Launcher", roots: [], zips: APP + "\\Game Zips", mtool: "", hide: null };
+function readUtf8(path) {
+  var s = new ActiveXObject("ADODB.Stream"); s.Type = 2; s.Charset = "utf-8"; s.Open(); s.LoadFromFile(path);
+  var t = s.ReadText(); s.Close(); return t;
+}
+function loadConfig() {
+  if (!fso.FileExists(APP + "\\config.txt")) return;
+  var lines = readUtf8(APP + "\\config.txt").split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var m = /^\s*(\w+)\s*=\s*(.*?)\s*$/.exec(lines[i]);
+    if (!m || /^#/.test(lines[i])) continue;
+    var k = m[1].toLowerCase(), v = m[2];
+    if (v === "") continue; // empty = keep default (an empty hide= would otherwise hide everything)
+    if (k == "root") { var p = v.split("|"); if (p.length == 2) CFG.roots.push([p[0], p[1]]); }
+    else if (k == "hide") { try { CFG.hide = new RegExp(v, "i"); } catch (e) {} }
+    else if (k in CFG) CFG[k] = v;
+  }
+}
+
+function pickTarget(dir, exeOnly) {
+  var f = fso.GetFolder(dir), e, exes = [], lnk = null;
+  for (e = new Enumerator(f.Files); !e.atEnd(); e.moveNext()) {
+    var n = e.item().Name;
+    if (/patch and run.*\.lnk$/i.test(n)) lnk = e.item().Path; // XUnity translation launcher wins
+    else if (/\.exe$/i.test(n) && !SKIP_EXE.test(n)) exes.push(e.item().Path);
+  }
+  if (lnk && !exeOnly) return lnk;
+  if (exes.length) return exes[0]; // shortcut: first exe; if a game ever picks the wrong one, add it to SKIP_EXE
+  // version / DLC subfolders: main game before "DLC - ..." folders
+  var subs = [];
+  for (e = new Enumerator(f.SubFolders); !e.atEnd(); e.moveNext()) subs.push(e.item());
+  subs.sort(function (a, b) { return (/^DLC/i.test(a.Name) ? 1 : 0) - (/^DLC/i.test(b.Name) ? 1 : 0); });
+  for (var k = 0; k < subs.length; k++) {
+    var t = pickTarget(subs[k].Path, exeOnly);
+    if (t) return t;
+  }
+  return null;
+}
+
+function cover(name) {
+  var exts = ["jpg", "png", "jpeg", "webp", "gif"];
+  for (var i = 0; i < exts.length; i++) if (fso.FileExists(COVERS + name + "." + exts[i])) return COVERS + name + "." + exts[i];
+  return null;
+}
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
+
+var games = [];
+function card(name, target, dir) {
+  var i = games.length, c = cover(name);
+  games.push({ name: name, target: target, dir: dir });
+  return "<div class='card' data-name=\"" + esc(name.toLowerCase()) + "\" onclick='ask(" + i + ")' title=\"" + esc(target) + "\">" +
+    "<div class='cover'>" + (c ? "<img src=\"" + esc(c) + "\">" : esc(name)) + "</div>" +
+    "<div class='name'>" + esc(name) + "</div></div>";
+}
+
+function build() {
+  var html = "";
+  for (var r = 0; r < CFG.roots.length; r++) {
+    if (!fso.FolderExists(CFG.roots[r][1])) continue;
+    html += "<h2>" + esc(CFG.roots[r][0]) + "</h2><div class='grid'>";
+    for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
+      var d = e.item();
+      if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
+      var target = pickTarget(d.Path);
+      if (target) html += card(d.Name, target, d.Path);
+    }
+    html += "</div>";
+  }
+  // games added by picking an exe (add-game.ps1), kept where they are
+  var EXTRA = APP + "\\extra-games.txt";
+  if (fso.FileExists(EXTRA)) {
+    var ts = fso.OpenTextFile(EXTRA, 1, false, -1), xh = "";
+    while (!ts.AtEndOfStream) {
+      var parts = ts.ReadLine().split("\t");
+      if (parts.length < 2 || !fso.FileExists(parts[1])) continue; // skip games that were moved/deleted
+      xh += card(parts[0], parts[1], fso.GetParentFolderName(parts[1]));
+    }
+    ts.Close();
+    if (xh) html += "<h2>其他（自己加嘅）</h2><div class='grid'>" + xh + "</div>";
+  }
+  if (!html) html = "<p style='margin-left:4px;color:#00f0ff'>未有遊戲。撳「＋ 揀 exe 加遊戲」，或者喺 config.txt 加 root=名|資料夾。</p>";
+  document.getElementById("list").innerHTML = html;
+}
+
+function buildButtons() {
+  var b = "";
+  if (CFG.mtool) b += "<button class='btn pink' onclick='openMTool()'>開 MTool</button>";
+  for (var r = 0; r < CFG.roots.length; r++) b += "<button class='btn' onclick='importZip(" + r + ")'>匯入 zip → " + esc(CFG.roots[r][0]) + "</button>";
+  b += "<button class='btn' onclick='addGame()'>＋ 揀 exe 加遊戲</button>";
+  b += "<button class='btn' onclick='openSettings()'>⚙ 設定</button>";
+  document.getElementById("buttons").innerHTML = b;
+  document.getElementById("mtoolPick").style.display = CFG.mtool ? "" : "none";
+  document.getElementById("title").innerText = document.title = CFG.title;
+}
+
+var chosen = -1;
+function ask(i) {
+  chosen = i;
+  document.getElementById("chooseName").innerText = games[i].name;
+  document.getElementById("choosePath").innerText = games[i].dir;
+  document.getElementById("choose").style.display = "block";
+}
+function openFolder() {
+  document.getElementById("choose").style.display = "none";
+  shellApp.ShellExecute("explorer.exe", "/select,\"" + games[chosen].target + "\"", "", "open", 1);
+}
+function pick(useMTool) {
+  document.getElementById("choose").style.display = "none";
+  if (useMTool) runMTool(chosen); else run(chosen);
+}
+
+function run(i) {
+  var g = games[i];
+  // the game's own folder as working dir (many VN engines need it)
+  shellApp.ShellExecute(g.target, "", fso.GetParentFolderName(g.target), "open", 1);
+  document.getElementById("msg").innerText = "啟動緊：" + g.name;
+}
+
+function openMTool() {
+  var exe = CFG.mtool + "\\Tool\\MTool.exe", bat = CFG.mtool + "\\Use me to open the Tool.bat";
+  if (fso.FileExists(bat)) shellApp.ShellExecute(bat, "", CFG.mtool, "open", 0); // its own bat does the permission checks
+  else if (fso.FileExists(exe)) shellApp.ShellExecute(exe, "", CFG.mtool + "\\Tool", "open", 1);
+  else { document.getElementById("msg").innerText = "搵唔到 MTool：" + CFG.mtool; return false; }
+  return true;
+}
+// MTool takes no command-line game arg: open it, select the game's exe in Explorer and copy its path.
+function runMTool(i) {
+  var g = games[i], exe = pickTarget(fso.GetParentFolderName(g.target), true) || g.target;
+  if (!openMTool()) return;
+  try { window.clipboardData.setData("Text", exe); } catch (e) {}
+  shellApp.ShellExecute("explorer.exe", "/select,\"" + exe + "\"", "", "open", 1);
+  document.getElementById("msg").innerText = "開緊 MTool：將 " + fso.GetFileName(exe) + " 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）";
+}
+
+function ps(script, args, show) {
+  wsh.Run('powershell -NoProfile -ExecutionPolicy Bypass' + (show ? '' : ' -WindowStyle Hidden') + ' -File "' + APP + '\\' + script + '" ' + args, show ? 1 : 0, true);
+  location.reload(); // rescan
+}
+function addGame() { ps("add-game.ps1", "", false); }
+function importZip(r) {
+  document.getElementById("msg").innerText = "揀壓縮檔（可以一次揀幾個），解壓完會自動加入遊戲庫…";
+  ps("import.ps1", '-Root "' + CFG.roots[r][1] + '" -Zips "' + CFG.zips + '"', true);
+}
+
+function changeCover() {
+  document.getElementById("choose").style.display = "none";
+  ps("set-cover.ps1", '-Name "' + games[chosen].name.replace(/"/g, '') + '"', false);
+}
+
+function openSettings() {
+  var roots = [];
+  for (var r = 0; r < CFG.roots.length; r++) roots.push(CFG.roots[r].join("|"));
+  document.getElementById("sTitle").value = CFG.title;
+  document.getElementById("sRoots").value = roots.join("\r\n");
+  document.getElementById("sZips").value = CFG.zips;
+  document.getElementById("sMtool").value = CFG.mtool;
+  document.getElementById("sHide").value = CFG.hide ? CFG.hide.source : "";
+  document.getElementById("settings").style.display = "block";
+}
+function browse() { var f = shellApp.BrowseForFolder(0, "揀資料夾", 0x51); return f ? f.Self.Path : ""; }
+function browseInto(id) { var p = browse(); if (p) document.getElementById(id).value = p; }
+function browseRoot() {
+  var p = browse(); if (!p) return;
+  var t = document.getElementById("sRoots");
+  t.value = (t.value ? t.value.replace(/\s+$/, "") + "\r\n" : "") + fso.GetFileName(p) + "|" + p;
+}
+function saveSettings() {
+  var v = function (id) { return document.getElementById(id).value.replace(/[\r\n]/g, " ").replace(/^\s+|\s+$/g, ""); };
+  var out = ["# Local Game Launcher settings (edited from the ⚙ 設定 window)", "title=" + v("sTitle")];
+  var roots = document.getElementById("sRoots").value.split(/\r?\n/);
+  for (var i = 0; i < roots.length; i++) if (/\|/.test(roots[i])) out.push("root=" + roots[i].replace(/^\s+|\s+$/g, ""));
+  out.push("zips=" + v("sZips"), "mtool=" + v("sMtool"), "hide=" + v("sHide"));
+  var s = new ActiveXObject("ADODB.Stream"); s.Type = 2; s.Charset = "utf-8"; s.Open();
+  s.WriteText(out.join("\r\n") + "\r\n"); s.SaveToFile(APP + "\\config.txt", 2); s.Close();
+  location.reload();
+}
+
+function filter() {
+  var q = document.getElementById("search").value.toLowerCase();
+  var cards = document.getElementsByClassName("card");
+  for (var i = 0; i < cards.length; i++) cards[i].style.display = cards[i].getAttribute("data-name").indexOf(q) >= 0 ? "" : "none";
+}
+
+try { window.moveTo(0, 0); window.resizeTo(screen.availWidth, screen.availHeight); } catch (e) {}
+loadConfig();
+buildButtons();
+build();
+</script>
+</body>
+</html>
