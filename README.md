@@ -31,7 +31,8 @@ The interface text is in Traditional Chinese (Cantonese).
 1. Download or clone this repository anywhere, for example `C:\LocalGameLauncher`.
 2. Run `LocalGameLauncher.exe`. You can also double-click `LocalGameLauncher.hta`.
 3. Open **⚙ 設定**, add your games folders with **＋ 揀資料夾**, then click **儲存** (save).
-4. Optional: right-click the exe and choose **Show more options → Pin to taskbar**.
+4. Optional: right-click the exe and choose **Show more options → Pin to taskbar**. So that the open launcher stacks on that pinned icon, run this once afterwards (put in your own shortcut path):
+   `LocalGameLauncher.exe /pin "%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\LocalGameLauncher.lnk"`
 
 Your settings (`config.txt`), the list of added games (`extra-games.txt`), play time (`playtime.txt`), descriptions (`descriptions.txt`), your covers and your archives stay on your PC. They are git-ignored.
 
@@ -83,7 +84,8 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 1. 把這個 repository 下載或 clone 到任何位置，例如 `C:\LocalGameLauncher`。
 2. 執行 `LocalGameLauncher.exe`，也可以直接點兩下 `LocalGameLauncher.hta`。
 3. 打開 **⚙ 設定**，用 **＋ 揀資料夾** 加入你的遊戲資料夾，然後按 **儲存**。
-4. 可選：在 exe 上按右鍵，選 **顯示更多選項 → 釘選到工作列**。
+4. 可選：在 exe 上按右鍵，選 **顯示更多選項 → 釘選到工作列**。之後執行一次以下指令（換成你自己的捷徑路徑），開著的啟動器就會疊在釘選的圖示上：
+   `LocalGameLauncher.exe /pin "%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\LocalGameLauncher.lnk"`
 
 你的設定（`config.txt`）、自己加的遊戲清單（`extra-games.txt`）、遊玩時間（`playtime.txt`）、簡介（`descriptions.txt`）、封面和壓縮檔都只留在你的電腦，已經被 git 忽略。
 
