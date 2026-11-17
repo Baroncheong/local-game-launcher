@@ -12,7 +12,9 @@ The interface text is in Traditional Chinese (Cantonese).
 
 - **Auto-scan**: each subfolder of a games folder becomes one game. The launcher picks the game's exe and skips helpers such as `UnityCrashHandler`, `Config` and installers. A version or DLC layout like `Game\v1.0` and `Game\DLC - Extra` works too: main folders are tried before `DLC - ...` ones.
 - **Covers**: put `<game name>.jpg/png/webp/gif` in `covers\`, or click a game and choose **換封面** (change cover) to pick any image.
-- **Game pop-up**: start directly, start with MTool, open the game's folder, or change its cover. The pop-up also shows where the game is.
+- **Two-pane library**: a game list on the left with collapsible categories and search, and a home grid of covers on the right.
+- **Game page**: click a game to see its cover, a play button, "start with MTool", last played, play time, your own description, and where its files are. The ⚙ button opens the game's folder, changes the cover, edits the description or copies the path.
+- **Play time**: games started from the launcher record when they were last played and for how long. A game that relaunches itself through another program may be under-counted.
 - **Import archives**: pick one or more zip/rar/7z files, with an optional password. They are extracted into a games folder, extra wrapper folders are removed, and the archive is moved to your archive folder (`Game Zips\<game>` by default).
 - **Add by exe**: add a game that lives anywhere by picking its exe, and choose which category it appears under. Nothing is moved. Each category also has a **＋** button that adds a game straight into it.
 - **Settings window (⚙ 設定)**: title, games folders, archive folder, MTool folder, and a filter that hides folders by name.
@@ -31,7 +33,7 @@ The interface text is in Traditional Chinese (Cantonese).
 3. Open **⚙ 設定**, add your games folders with **＋ 揀資料夾**, then click **儲存** (save).
 4. Optional: right-click the exe and choose **Show more options → Pin to taskbar**.
 
-Your settings (`config.txt`), the list of added games (`extra-games.txt`), your covers and your archives stay on your PC. They are git-ignored.
+Your settings (`config.txt`), the list of added games (`extra-games.txt`), play time (`playtime.txt`), descriptions (`descriptions.txt`), your covers and your archives stay on your PC. They are git-ignored.
 
 ### Renaming
 
@@ -62,7 +64,9 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 
 - **自動掃描**：遊戲資料夾裡的每個子資料夾就是一隻遊戲。啟動器會自動找出遊戲的 exe，並略過 `UnityCrashHandler`、`Config`、安裝程式這類輔助程式。像 `Game\v1.0`、`Game\DLC - Extra` 這種分版本或 DLC 的結構也支援，會先找主程式，再找 `DLC - ...` 資料夾。
 - **封面**：把 `<遊戲名>.jpg/png/webp/gif` 放進 `covers\`，或者點遊戲後按 **換封面**，選任何一張圖片。
-- **遊戲視窗**：可以直接開、用 MTool 開、打開遊戲資料夾，或者換封面。視窗也會顯示遊戲的位置。
+- **雙欄遊戲庫**：左邊是遊戲清單，類別可以收合，也可以搜尋；右邊是封面格的主頁。
+- **遊戲頁**：點一隻遊戲就會看到封面、開始遊戲按鈕、「用 MTool 開」、上次遊玩、遊玩時間、你自己寫的簡介，以及檔案位置。⚙ 按鈕可以打開遊戲資料夾、換封面、編輯簡介或複製路徑。
+- **遊玩時間**：從啟動器開的遊戲會記錄上次遊玩的時間和玩了多久。如果遊戲會經另一個程式重新啟動，時間可能會少算。
 - **匯入壓縮檔**：一次選一個或多個 zip/rar/7z，可以輸入密碼。它會解壓到遊戲資料夾、拿走多餘的外層資料夾，再把壓縮檔搬到你的壓縮檔資料夾（預設是 `Game Zips\<遊戲名>`）。
 - **用 exe 加遊戲**：遊戲放在任何地方都可以，選它的 exe 就能加入，還可以選它顯示在哪個類別。遊戲不會被搬走。每個類別旁邊也有一個 **＋** 按鈕，可以直接把遊戲加進該類別。
 - **設定視窗（⚙ 設定）**：標題、遊戲資料夾、壓縮檔資料夾、MTool 資料夾，以及按名稱隱藏資料夾的過濾器。
@@ -81,7 +85,7 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 3. 打開 **⚙ 設定**，用 **＋ 揀資料夾** 加入你的遊戲資料夾，然後按 **儲存**。
 4. 可選：在 exe 上按右鍵，選 **顯示更多選項 → 釘選到工作列**。
 
-你的設定（`config.txt`）、自己加的遊戲清單（`extra-games.txt`）、封面和壓縮檔都只留在你的電腦，已經被 git 忽略。
+你的設定（`config.txt`）、自己加的遊戲清單（`extra-games.txt`）、遊玩時間（`playtime.txt`）、簡介（`descriptions.txt`）、封面和壓縮檔都只留在你的電腦，已經被 git 忽略。
 
 ### 改名
 

@@ -6,48 +6,107 @@
 <title>Local Game Launcher</title>
 <hta:application id="app" applicationname="LocalGameLauncher" border="thick" windowstate="maximize" singleinstance="yes" icon="logo.ico">
 <style>
-  /* generic neon-cyberpunk look: yellow + cyan on near-black, scanlines, HUD labels */
-  body { margin:0; padding:20px 24px; color:#e8f7ff; font-family:"Consolas","Microsoft JhengHei",monospace;
+  /* two-pane library: game list on the left, home grid or game page on the right. Neon yellow + cyan on near-black. */
+  html, body { height:100%; }
+  body { margin:0; color:#e8f7ff; font-family:"Consolas","Microsoft JhengHei",monospace; overflow:hidden;
          background:#07080c repeating-linear-gradient(0deg, rgba(0,240,255,.035) 0, rgba(0,240,255,.035) 1px, transparent 1px, transparent 3px); }
-  h1 { font-size:26px; margin:0 0 10px 4px; font-weight:bold; color:#fcee0a; letter-spacing:3px; text-transform:uppercase;
-       text-shadow:2px 0 #ff2a6d, -2px 0 #00f0ff, 0 0 12px rgba(252,238,10,.6); }
-  h2 { font-size:13px; color:#00f0ff; margin:24px 0 8px 4px; font-weight:normal; letter-spacing:4px; text-transform:uppercase;
+  #top { height:56px; padding:10px 18px; box-sizing:border-box; border-bottom:1px solid #1f3a44; white-space:nowrap; overflow:hidden; }
+  #top img { width:32px; height:32px; vertical-align:middle; margin-right:8px; }
+  #title { font-size:22px; font-weight:bold; color:#fcee0a; letter-spacing:3px; vertical-align:middle; margin-right:14px;
+           text-shadow:2px 0 #ff2a6d, -2px 0 #00f0ff, 0 0 12px rgba(252,238,10,.6); }
+  #main { position:absolute; top:56px; bottom:0; left:0; right:0; }
+  #side { position:absolute; left:0; top:0; bottom:0; width:300px; overflow-y:auto; background:#0a0c12; border-right:1px solid #1f3a44; }
+  #content { position:absolute; left:301px; right:0; top:0; bottom:0; overflow-y:auto; padding:18px 24px; }
+  h2 { font-size:13px; color:#00f0ff; margin:22px 0 8px 4px; font-weight:normal; letter-spacing:4px; text-transform:uppercase;
        border-bottom:1px solid #00f0ff; padding-bottom:4px; text-shadow:0 0 6px #00f0ff; }
   h2:before { content:"// "; color:#ff2a6d; }
   input, textarea { background:#0d1018; color:#e8f7ff; border:1px solid #00f0ff; font-family:inherit; padding:5px 8px; box-sizing:border-box; }
-  #search { margin:0 0 4px 4px; width:260px; font-size:14px; border-left:4px solid #fcee0a; }
+  #search { margin:10px; width:278px; font-size:14px; border-left:4px solid #fcee0a; }
   .btn { margin-left:6px; padding:6px 14px; background:transparent; color:#00f0ff; border:1px solid #00f0ff; cursor:pointer;
          font-family:inherit; letter-spacing:1px; text-transform:uppercase; }
   .btn:hover { background:#00f0ff; color:#07080c; box-shadow:0 0 12px #00f0ff; }
-  .plus { padding:0 8px; margin-left:10px; font-size:14px; color:#fcee0a; border-color:#fcee0a; letter-spacing:0; }
-  .pink {color:#07080c; background:#fcee0a; border-color:#fcee0a; }
+  .plus { padding:0 8px; font-size:14px; color:#fcee0a; border-color:#fcee0a; letter-spacing:0; }
+  .pink { color:#07080c; background:#fcee0a; border-color:#fcee0a; }
   .pink:hover { background:#fff36b; box-shadow:0 0 14px #fcee0a; color:#07080c; }
   .big { padding:10px 18px; margin:4px; font-size:14px; }
+  .play { padding:14px 46px; font-size:18px; font-weight:bold; margin:0 8px 0 0; color:#06200f; background:#3ddc84; border-color:#3ddc84; letter-spacing:3px; }
+  .play:hover { background:#7dffb2; border-color:#7dffb2; color:#06200f; box-shadow:0 0 18px #3ddc84; }
+  /* sidebar */
+  .nav { padding:8px 12px; cursor:pointer; color:#fcee0a; letter-spacing:2px; font-size:13px; }
+  .cat { padding:7px 10px; margin-top:6px; cursor:pointer; color:#00f0ff; font-size:12px; letter-spacing:2px; text-transform:uppercase; background:#0f131c; border-top:1px solid #1f3a44; }
+  .cat span.n { color:#3d6b78; }
+  .cat .plus { float:right; margin:0; }
+  .item { padding:5px 10px 5px 14px; cursor:pointer; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#b9cfd8; border-left:3px solid transparent; }
+  .item img { width:22px; height:22px; vertical-align:middle; margin-right:8px; }
+  .item .noimg { display:inline-block; width:22px; height:22px; vertical-align:middle; margin-right:8px; background:#16202a; }
+  .item:hover, .nav:hover { background:#141a26; color:#fff; }
+  .sel { background:#16263a !important; color:#fcee0a !important; border-left-color:#fcee0a; }
+  /* home grid */
   .grid { display:flex; flex-wrap:wrap; }
-  .card { width:220px; margin:7px; background:#0d1018; cursor:pointer; border:1px solid #1f3a44; border-top:3px solid #fcee0a; position:relative; }
+  .card { width:220px; margin:7px; background:#0d1018; cursor:pointer; border:1px solid #1f3a44; border-top:3px solid #fcee0a; }
   .card:hover { border-color:#00f0ff; border-top-color:#ff2a6d; box-shadow:0 0 16px rgba(0,240,255,.55); }
   .cover img { max-width:220px; max-height:165px; }
   .cover { width:220px; height:165px; background:#050608; overflow:hidden; display:flex; align-items:center; justify-content:center;
            text-align:center; font-size:16px; color:#3d6b78; padding:0 10px; box-sizing:border-box; }
-  .name { padding:8px; font-size:12px; height:34px; overflow:hidden; color:#e8f7ff; border-top:1px solid #1f3a44; }
+  .name { padding:8px; font-size:12px; height:34px; overflow:hidden; border-top:1px solid #1f3a44; }
   .card:hover .name { color:#fcee0a; }
-  #msg { color:#fcee0a; margin-left:4px; height:18px; text-shadow:0 0 6px #fcee0a; }
+  /* game page */
+  #hero { background:#050608; border:1px solid #1f3a44; border-top:3px solid #fcee0a; text-align:center; height:340px; line-height:340px; overflow:hidden; color:#3d6b78; font-size:26px; }
+  #hero img { max-width:100%; max-height:340px; vertical-align:middle; }
+  #gname { font-size:26px; color:#fcee0a; margin:16px 0 12px; letter-spacing:1px; text-shadow:0 0 10px rgba(252,238,10,.5); }
+  #bar { background:#0b0d14; border:1px solid #1f3a44; padding:14px; position:relative; }
+  .stat { display:inline-block; vertical-align:middle; margin-left:26px; }
+  .stat .k { color:#3d9fb0; font-size:11px; letter-spacing:2px; }
+  .stat .v { font-size:15px; margin-top:3px; }
+  #gear { position:absolute; right:14px; top:20px; }
+  #menu { display:none; position:absolute; right:14px; top:58px; background:#0b0d14; border:1px solid #00f0ff; z-index:5; box-shadow:0 0 18px rgba(0,240,255,.4); }
+  #menu div { padding:9px 18px; cursor:pointer; font-size:13px; }
+  #menu div:hover { background:#00f0ff; color:#07080c; }
+  #desc { white-space:pre-wrap; line-height:1.6; font-size:14px; color:#cfe3ea; font-family:"Microsoft JhengHei","Segoe UI",sans-serif; }
+  #msg { color:#fcee0a; margin:8px 0 0 2px; height:18px; text-shadow:0 0 6px #fcee0a; font-size:13px; }
   .panel { background:#0b0d14; border:1px solid #00f0ff; border-left:4px solid #fcee0a; box-shadow:0 0 24px rgba(0,240,255,.35); padding:20px; }
-  .label { color:#00f0ff; letter-spacing:2px; font-size:12px; }
+  .path { color:#00f0ff; font-size:12px; word-break:break-all; }
 </style>
 </head>
 <body>
-<h1><img src="logo.png" style="width:32px;height:32px;vertical-align:middle;margin-right:8px"><span id="title">Local Game Launcher</span></h1>
-<input id="search" placeholder="搵遊戲…" onkeyup="filter()">
-<span id="buttons"></span>
-<div id="choose" onclick="if(event.srcElement==this)this.style.display='none'" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9">
-  <div class="panel" style="width:480px;margin:180px auto;text-align:center">
-    <div id="chooseName" style="margin-bottom:8px;font-size:15px"></div>
-    <div id="choosePath" style="margin-bottom:16px;font-size:12px;color:#00f0ff;word-break:break-all"></div>
-    <button class="btn big" onclick="pick(false)">直接開</button>
-    <button class="btn big pink" id="mtoolPick" onclick="pick(true)">用 MTool 開</button>
-    <button class="btn big" onclick="openFolder()">打開資料夾</button>
-    <button class="btn big" onclick="changeCover()">換封面</button>
+<div id="top"><img src="logo.png"><span id="title">Local Game Launcher</span><span id="buttons"></span></div>
+<div id="main">
+  <div id="side">
+    <input id="search" placeholder="搵遊戲…" onkeyup="filter()">
+    <div class="nav" id="navHome" onclick="showHome()">▣ 主頁 HOME</div>
+    <div id="tree"></div>
+  </div>
+  <div id="content">
+    <div id="home"></div>
+    <div id="page" style="display:none">
+      <div id="hero"></div>
+      <div id="gname"></div>
+      <div id="bar">
+        <button class="btn play" onclick="run(cur)">▶ 開始遊戲</button>
+        <button class="btn big" id="mtoolBtn" onclick="runMTool(cur)">用 MTool 開</button>
+        <span class="stat"><div class="k">上次遊玩</div><div class="v" id="sLast"></div></span>
+        <span class="stat"><div class="k">遊玩時間</div><div class="v" id="sTime"></div></span>
+        <span class="stat"><div class="k">類別</div><div class="v" id="sCat"></div></span>
+        <button class="btn big" id="gear" title="檔案同設定" onclick="toggleMenu()">⚙</button>
+        <div id="menu">
+          <div onclick="openFolder()">打開遊戲資料夾</div>
+          <div onclick="changeCover()">換封面</div>
+          <div onclick="editDesc()">編輯簡介</div>
+          <div onclick="copyPath()">複製路徑</div>
+        </div>
+      </div>
+      <div id="msg"></div>
+      <h2>簡介</h2>
+      <div id="desc"></div>
+      <div id="descEdit" style="display:none">
+        <textarea id="descBox" rows="8" style="width:100%"></textarea><br>
+        <button class="btn big pink" style="margin-left:0" onclick="saveDesc()">儲存簡介</button>
+        <button class="btn big" onclick="showGame(cur)">取消</button>
+      </div>
+      <h2>檔案</h2>
+      <div class="path" id="gpath"></div>
+      <div style="margin-top:8px"><button class="btn" style="margin-left:0" onclick="openFolder()">打開遊戲資料夾</button></div>
+    </div>
   </div>
 </div>
 <div id="settings" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9">
@@ -64,16 +123,16 @@
     <button class="btn big" onclick="document.getElementById('settings').style.display='none'">取消</button>
   </div>
 </div>
-<div id="msg"></div>
-<div id="list"></div>
 <script>
 var fso = new ActiveXObject("Scripting.FileSystemObject");
 var shellApp = new ActiveXObject("Shell.Application");
 var wsh = new ActiveXObject("WScript.Shell");
+function $(id) { return document.getElementById(id); }
 // folder this .hta lives in; every other file is relative to it
-var APP = fso.GetParentFolderName(decodeURIComponent(location.href.replace(/^file:\/*/i, "")).replace(/\//g, "\\"));
+var APP = fso.GetParentFolderName(decodeURIComponent(location.href.replace(/#.*$/, "").replace(/^file:\/*/i, "")).replace(/\//g, "\\"));
 var COVERS = APP + "\\covers\\";
 var SKIP_EXE = /^(UnityCrashHandler|Config|notification_helper|Setup|unins|crash)/i;
+var OTHER = "其他";
 
 // config.txt (UTF-8): title=, root=Label|Folder (repeatable), zips=, mtool=, hide= (regex of folder names to skip)
 var CFG = { title: "Local Game Launcher", roots: [], zips: APP + "\\Game Zips", mtool: "", hide: null };
@@ -93,6 +152,15 @@ function loadConfig() {
     else if (k == "hide") { try { CFG.hide = new RegExp(v, "i"); } catch (e) {} }
     else if (k in CFG) CFG[k] = v;
   }
+}
+
+// tab-separated UTF-16 files keyed by the first column: returns { key: [col1, col2, ...] }
+function readTsv(file) {
+  var map = {}, path = APP + "\\" + file;
+  if (!fso.FileExists(path)) return map;
+  var ts = fso.OpenTextFile(path, 1, false, -1);
+  while (!ts.AtEndOfStream) { var p = ts.ReadLine().split("\t"); if (p[0]) map[p[0]] = p.slice(1); }
+  ts.Close(); return map;
 }
 
 function pickTarget(dir, exeOnly) {
@@ -120,21 +188,14 @@ function cover(name) {
   for (var i = 0; i < exts.length; i++) if (fso.FileExists(COVERS + name + "." + exts[i])) return COVERS + name + "." + exts[i];
   return null;
 }
-
 function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
 
-var games = [];
-function card(name, target, dir) {
-  var i = games.length, c = cover(name);
-  games.push({ name: name, target: target, dir: dir });
-  return "<div class='card' data-name=\"" + esc(name.toLowerCase()) + "\" onclick='ask(" + i + ")' title=\"" + esc(target) + "\">" +
-    "<div class='cover'>" + (c ? "<img src=\"" + esc(c) + "\">" : esc(name)) + "</div>" +
-    "<div class='name'>" + esc(name) + "</div></div>";
-}
-
-function build() {
+// ---- library scan ----
+var games = [], cats = []; // cats: [{label, root (index or -1), ids: [game index]}]
+function addGameTo(cat, name, target, dir) { cat.ids.push(games.length); games.push({ name: name, target: target, dir: dir, cat: cat.label, cover: cover(name) }); }
+function scan() {
   // games added by picking an exe (add-game.ps1), kept where they are: name<TAB>exe<TAB>category
-  var extras = [], EXTRA = APP + "\\extra-games.txt";
+  var extras = [], EXTRA = APP + "\\extra-games.txt", x;
   if (fso.FileExists(EXTRA)) {
     var ts = fso.OpenTextFile(EXTRA, 1, false, -1);
     while (!ts.AtEndOfStream) {
@@ -143,66 +204,112 @@ function build() {
     }
     ts.Close();
   }
-  var html = "", r, x;
-  for (r = 0; r < CFG.roots.length; r++) {
-    var sec = "";
+  for (var r = 0; r < CFG.roots.length; r++) {
+    var cat = { label: CFG.roots[r][0], root: r, ids: [] };
     if (fso.FolderExists(CFG.roots[r][1])) {
       for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
         var d = e.item();
         if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
         var target = pickTarget(d.Path);
-        if (target) sec += card(d.Name, target, d.Path);
+        if (target) addGameTo(cat, d.Name, target, d.Path);
       }
     }
-    for (x = 0; x < extras.length; x++) if (extras[x][2] == CFG.roots[r][0]) { sec += card(extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1])); extras[x].used = true; }
-    html += "<h2>" + esc(CFG.roots[r][0]) + " <button class='btn plus' title='加遊戲入呢欄' onclick='addGame(" + r + ")'>＋</button></h2><div class='grid'>" + sec + "</div>";
+    for (x = 0; x < extras.length; x++) if (extras[x][2] == cat.label) { addGameTo(cat, extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1])); extras[x].used = true; }
+    cats.push(cat);
   }
-  var xh = ""; // no category, or a category that no longer exists
-  for (x = 0; x < extras.length; x++) if (!extras[x].used) xh += card(extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1]));
-  if (xh) html += "<h2>其他</h2><div class='grid'>" + xh + "</div>";
-  if (!html) html = "<p style='margin-left:4px;color:#00f0ff'>未有遊戲。撳「＋ 揀 exe 加遊戲」，或者喺 config.txt 加 root=名|資料夾。</p>";
-  document.getElementById("list").innerHTML = html;
+  var other = { label: OTHER, root: -1, ids: [] }; // no category, or a category that no longer exists
+  for (x = 0; x < extras.length; x++) if (!extras[x].used) addGameTo(other, extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1]));
+  if (other.ids.length) cats.push(other);
 }
 
-function buildButtons() {
-  var b = "";
-  if (CFG.mtool) b += "<button class='btn pink' onclick='openMTool()'>開 MTool</button>";
-  for (var r = 0; r < CFG.roots.length; r++) b += "<button class='btn' onclick='importZip(" + r + ")'>匯入 zip → " + esc(CFG.roots[r][0]) + "</button>";
-  b += "<button class='btn' onclick='addGame(-1)'>＋ 揀 exe 加遊戲</button>";
-  b += "<button class='btn' onclick='openSettings()'>⚙ 設定</button>";
-  document.getElementById("buttons").innerHTML = b;
-  document.getElementById("mtoolPick").style.display = CFG.mtool ? "" : "none";
-  document.getElementById("title").innerText = document.title = CFG.title;
+// ---- rendering ----
+var collapsed = {}; // category label -> true; kept in window.name so it survives the reload after an import
+function loadCollapsed() { var a = (window.name || "").split("\n"); for (var i = 0; i < a.length; i++) if (a[i]) collapsed[a[i]] = true; }
+function toggleCat(c) {
+  var l = cats[c].label; if (collapsed[l]) delete collapsed[l]; else collapsed[l] = true;
+  var a = []; for (var k in collapsed) a.push(k); window.name = a.join("\n");
+  renderTree();
+}
+function plusBtn(cat) { return cat.root >= 0 ? "<button class='btn plus' title='加遊戲入呢欄' onclick='event.cancelBubble=true;addGame(" + cat.root + ")'>＋</button>" : ""; }
+function renderTree() {
+  var q = $("search").value.toLowerCase(), h = "";
+  for (var c = 0; c < cats.length; c++) {
+    var cat = cats[c], rows = "", n = 0;
+    for (var k = 0; k < cat.ids.length; k++) {
+      var i = cat.ids[k], g = games[i];
+      if (q && g.name.toLowerCase().indexOf(q) < 0) continue;
+      n++;
+      rows += "<div class='item" + (i == cur ? " sel" : "") + "' onclick='showGame(" + i + ")' title=\"" + esc(g.name) + "\">" +
+        (g.cover ? "<img src=\"" + esc(g.cover) + "\">" : "<span class='noimg'></span>") + esc(g.name) + "</div>";
+    }
+    var open = q ? true : !collapsed[cat.label];
+    h += "<div class='cat' onclick='toggleCat(" + c + ")'>" + (open ? "▾ " : "▸ ") + esc(cat.label) + " <span class='n'>(" + n + ")</span>" + plusBtn(cat) + "</div>" + (open ? rows : "");
+  }
+  $("tree").innerHTML = h;
+  $("navHome").className = "nav" + (cur < 0 ? " sel" : "");
+}
+function renderHome() {
+  var q = $("search").value.toLowerCase(), h = "";
+  for (var c = 0; c < cats.length; c++) {
+    var cat = cats[c], sec = "";
+    for (var k = 0; k < cat.ids.length; k++) {
+      var i = cat.ids[k], g = games[i];
+      if (q && g.name.toLowerCase().indexOf(q) < 0) continue;
+      sec += "<div class='card' onclick='showGame(" + i + ")' title=\"" + esc(g.target) + "\"><div class='cover'>" +
+        (g.cover ? "<img src=\"" + esc(g.cover) + "\">" : esc(g.name)) + "</div><div class='name'>" + esc(g.name) + "</div></div>";
+    }
+    if (sec || !q) h += "<h2>" + esc(cat.label) + " " + plusBtn(cat) + "</h2><div class='grid'>" + sec + "</div>";
+  }
+  if (!games.length) h = "<p style='color:#00f0ff'>未有遊戲。撳「⚙ 設定」加遊戲資料夾，或者撳「＋ 揀 exe 加遊戲」。</p>" + h;
+  $("home").innerHTML = h;
+}
+function filter() { renderTree(); if (cur < 0) renderHome(); }
+
+var cur = -1; // selected game index, -1 = home
+function showHome() {
+  cur = -1; location.hash = "";
+  $("page").style.display = "none"; $("home").style.display = ""; renderHome(); renderTree();
+}
+function fmtTime(sec) {
+  sec = parseInt(sec, 10) || 0;
+  if (sec < 60) return sec ? "少過 1 分鐘" : "未玩過";
+  var m = Math.floor(sec / 60), hr = Math.floor(m / 60);
+  return hr ? hr + " 小時 " + (m % 60) + " 分鐘" : m + " 分鐘";
+}
+function showGame(i) {
+  cur = i; var g = games[i];
+  location.hash = encodeURIComponent(g.name); // survives the reload after changing a cover etc.
+  $("home").style.display = "none"; $("page").style.display = ""; $("menu").style.display = "none";
+  $("desc").style.display = ""; $("descEdit").style.display = "none"; $("msg").innerText = "";
+  $("hero").innerHTML = g.cover ? "<img src=\"" + esc(g.cover) + "\">" : esc(g.name);
+  $("gname").innerText = g.name; $("sCat").innerText = g.cat; $("gpath").innerText = g.target;
+  var st = readTsv("playtime.txt")[g.name] || [];   // [seconds, last played]  (written by play.ps1)
+  $("sTime").innerText = fmtTime(st[0]); $("sLast").innerText = st[1] || "未玩過";
+  var d = readTsv("descriptions.txt")[g.name];
+  g.desc = d ? d[0].replace(/\\n/g, "\n") : "";
+  $("desc").innerText = g.desc || "未有簡介。撳右邊 ⚙ →「編輯簡介」可以自己寫。";
+  $("desc").style.color = g.desc ? "" : "#3d6b78";
+  $("content").scrollTop = 0; renderTree();
 }
 
-var chosen = -1;
-function ask(i) {
-  chosen = i;
-  document.getElementById("chooseName").innerText = games[i].name;
-  document.getElementById("choosePath").innerText = games[i].dir;
-  document.getElementById("choose").style.display = "block";
-}
-function openFolder() {
-  document.getElementById("choose").style.display = "none";
-  shellApp.ShellExecute("explorer.exe", "/select,\"" + games[chosen].target + "\"", "", "open", 1);
-}
-function pick(useMTool) {
-  document.getElementById("choose").style.display = "none";
-  if (useMTool) runMTool(chosen); else run(chosen);
-}
+// ---- game actions ----
+function toggleMenu() { var m = $("menu"); m.style.display = m.style.display == "block" ? "none" : "block"; }
+function psCmd(script, args, hidden) { return 'powershell -NoProfile -ExecutionPolicy Bypass' + (hidden ? ' -WindowStyle Hidden' : '') + ' -File "' + APP + '\\' + script + '" ' + args; }
+function ps(script, args, show) { wsh.Run(psCmd(script, args, !show), show ? 1 : 0, true); location.reload(); } // wait, then rescan
+function q(s) { return '"' + String(s).replace(/"/g, "") + '"'; }
 
 function run(i) {
   var g = games[i];
-  // the game's own folder as working dir (many VN engines need it)
-  shellApp.ShellExecute(g.target, "", fso.GetParentFolderName(g.target), "open", 1);
-  document.getElementById("msg").innerText = "啟動緊：" + g.name;
+  // play.ps1 starts the game in its own folder, then records last-played and play time when it exits
+  wsh.Run(psCmd("play.ps1", "-Target " + q(g.target) + " -Name " + q(g.name), true), 0, false);
+  $("msg").innerText = "啟動緊：" + g.name;
+  $("sLast").innerText = "啱啱";
 }
-
 function openMTool() {
   var exe = CFG.mtool + "\\Tool\\MTool.exe", bat = CFG.mtool + "\\Use me to open the Tool.bat";
   if (fso.FileExists(bat)) shellApp.ShellExecute(bat, "", CFG.mtool, "open", 0); // its own bat does the permission checks
   else if (fso.FileExists(exe)) shellApp.ShellExecute(exe, "", CFG.mtool + "\\Tool", "open", 1);
-  else { document.getElementById("msg").innerText = "搵唔到 MTool：" + CFG.mtool; return false; }
+  else { alert("搵唔到 MTool：" + CFG.mtool); return false; }
   return true;
 }
 // MTool takes no command-line game arg: open it, select the game's exe in Explorer and copy its path.
@@ -211,49 +318,60 @@ function runMTool(i) {
   if (!openMTool()) return;
   try { window.clipboardData.setData("Text", exe); } catch (e) {}
   shellApp.ShellExecute("explorer.exe", "/select,\"" + exe + "\"", "", "open", 1);
-  document.getElementById("msg").innerText = "開緊 MTool：將 " + fso.GetFileName(exe) + " 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）";
+  $("msg").innerText = "開緊 MTool：將 " + fso.GetFileName(exe) + " 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）";
+}
+function openFolder() { $("menu").style.display = "none"; shellApp.ShellExecute("explorer.exe", "/select,\"" + games[cur].target + "\"", "", "open", 1); }
+function copyPath() { $("menu").style.display = "none"; try { window.clipboardData.setData("Text", games[cur].target); $("msg").innerText = "已複製路徑"; } catch (e) {} }
+function changeCover() { $("menu").style.display = "none"; ps("set-cover.ps1", "-Name " + q(games[cur].name), false); }
+function editDesc() {
+  $("menu").style.display = "none"; $("desc").style.display = "none"; $("descEdit").style.display = "";
+  $("descBox").value = games[cur].desc || ""; $("descBox").focus();
+}
+function saveDesc() {
+  var map = readTsv("descriptions.txt"), text = $("descBox").value.replace(/\t/g, " ").replace(/\r?\n/g, "\\n");
+  if (text) map[games[cur].name] = [text]; else delete map[games[cur].name];
+  var ts = fso.OpenTextFile(APP + "\\descriptions.txt", 2, true, -1);
+  for (var k in map) ts.WriteLine(k + "\t" + map[k][0]);
+  ts.Close(); showGame(cur);
 }
 
-function ps(script, args, show) {
-  wsh.Run('powershell -NoProfile -ExecutionPolicy Bypass' + (show ? '' : ' -WindowStyle Hidden') + ' -File "' + APP + '\\' + script + '" ' + args, show ? 1 : 0, true);
-  location.reload(); // rescan
-}
-function addGame(def) { // def: index of the section whose ＋ was clicked (preselects that category)
+// ---- library actions ----
+function addGame(def) { // def: index of the category whose ＋ was clicked (preselects it)
   var labels = [];
   for (var r = 0; r < CFG.roots.length; r++) labels.push(CFG.roots[r][0].replace(/"/g, ""));
   ps("add-game.ps1", '-Categories "' + labels.join("|") + '"' + (def >= 0 ? ' -Default "' + labels[def] + '"' : ''), false);
 }
-function importZip(r) {
-  document.getElementById("msg").innerText = "揀壓縮檔（可以一次揀幾個），解壓完會自動加入遊戲庫…";
-  ps("import.ps1", '-Root "' + CFG.roots[r][1] + '" -Zips "' + CFG.zips + '"', true);
+function importZip(r) { ps("import.ps1", '-Root "' + CFG.roots[r][1] + '" -Zips "' + CFG.zips + '"', true); }
+function buildButtons() {
+  var b = "";
+  if (CFG.mtool) b += "<button class='btn pink' onclick='openMTool()'>開 MTool</button>";
+  for (var r = 0; r < CFG.roots.length; r++) b += "<button class='btn' onclick='importZip(" + r + ")'>匯入 zip → " + esc(CFG.roots[r][0]) + "</button>";
+  b += "<button class='btn' onclick='addGame(-1)'>＋ 揀 exe 加遊戲</button>";
+  b += "<button class='btn' onclick='openSettings()'>⚙ 設定</button>";
+  $("buttons").innerHTML = b;
+  $("mtoolBtn").style.display = CFG.mtool ? "" : "none";
+  $("title").innerText = document.title = CFG.title;
 }
 
-function changeCover() {
-  document.getElementById("choose").style.display = "none";
-  ps("set-cover.ps1", '-Name "' + games[chosen].name.replace(/"/g, '') + '"', false);
-}
-
+// ---- settings ----
 function openSettings() {
   var roots = [];
   for (var r = 0; r < CFG.roots.length; r++) roots.push(CFG.roots[r].join("|"));
-  document.getElementById("sTitle").value = CFG.title;
-  document.getElementById("sRoots").value = roots.join("\r\n");
-  document.getElementById("sZips").value = CFG.zips;
-  document.getElementById("sMtool").value = CFG.mtool;
-  document.getElementById("sHide").value = CFG.hide ? CFG.hide.source : "";
-  document.getElementById("settings").style.display = "block";
+  $("sTitle").value = CFG.title; $("sRoots").value = roots.join("\r\n"); $("sZips").value = CFG.zips;
+  $("sMtool").value = CFG.mtool; $("sHide").value = CFG.hide ? CFG.hide.source : "";
+  $("settings").style.display = "block";
 }
 function browse() { var f = shellApp.BrowseForFolder(0, "揀資料夾", 0x51); return f ? f.Self.Path : ""; }
-function browseInto(id) { var p = browse(); if (p) document.getElementById(id).value = p; }
+function browseInto(id) { var p = browse(); if (p) $(id).value = p; }
 function browseRoot() {
   var p = browse(); if (!p) return;
-  var t = document.getElementById("sRoots");
+  var t = $("sRoots");
   t.value = (t.value ? t.value.replace(/\s+$/, "") + "\r\n" : "") + fso.GetFileName(p) + "|" + p;
 }
 function saveSettings() {
-  var v = function (id) { return document.getElementById(id).value.replace(/[\r\n]/g, " ").replace(/^\s+|\s+$/g, ""); };
-  var out = ["# Local Game Launcher settings (edited from the ⚙ 設定 window)", "title=" + v("sTitle")];
-  var roots = document.getElementById("sRoots").value.split(/\r?\n/);
+  var v = function (id) { return $(id).value.replace(/[\r\n]/g, " ").replace(/^\s+|\s+$/g, ""); };
+  var out = ["# Local Game Launcher settings (edited from the Settings window)", "title=" + v("sTitle")];
+  var roots = $("sRoots").value.split(/\r?\n/);
   for (var i = 0; i < roots.length; i++) if (/\|/.test(roots[i])) out.push("root=" + roots[i].replace(/^\s+|\s+$/g, ""));
   out.push("zips=" + v("sZips"), "mtool=" + v("sMtool"), "hide=" + v("sHide"));
   var s = new ActiveXObject("ADODB.Stream"); s.Type = 2; s.Charset = "utf-8"; s.Open();
@@ -261,16 +379,13 @@ function saveSettings() {
   location.reload();
 }
 
-function filter() {
-  var q = document.getElementById("search").value.toLowerCase();
-  var cards = document.getElementsByClassName("card");
-  for (var i = 0; i < cards.length; i++) cards[i].style.display = cards[i].getAttribute("data-name").indexOf(q) >= 0 ? "" : "none";
-}
-
 try { window.moveTo(0, 0); window.resizeTo(screen.availWidth, screen.availHeight); } catch (e) {}
-loadConfig();
-buildButtons();
-build();
+loadConfig(); loadCollapsed(); scan(); buildButtons();
+(function () { // reopen the game that was showing before a reload
+  var want = ""; try { want = decodeURIComponent(location.hash.replace(/^#/, "")); } catch (e) {}
+  for (var i = 0; i < games.length; i++) if (want && games[i].name == want) return showGame(i);
+  showHome();
+})();
 </script>
 </body>
 </html>

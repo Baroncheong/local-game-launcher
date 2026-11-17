@@ -3,3 +3,5 @@ extra-games.txt
 covers/*
 !covers/.gitkeep
 Game Zips/
+playtime.txt
+descriptions.txt
