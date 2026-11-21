@@ -13,9 +13,12 @@ The interface text is in Traditional Chinese (Cantonese).
 - **Auto-scan**: each subfolder of a games folder becomes one game. The launcher picks the game's exe and skips helpers such as `UnityCrashHandler`, `Config` and installers. A version or DLC layout like `Game\v1.0` and `Game\DLC - Extra` works too: main folders are tried before `DLC - ...` ones.
 - **Covers**: put `<game name>.jpg/png/webp/gif` in `covers\`, or click a game and choose **換封面** (change cover) to pick any image.
 - **Two-pane library**: a game list on the left with collapsible categories and search, and a home grid of covers on the right.
-- **Game page**: click a game to see its cover, a play button, "start with MTool", last played, play time, your own description, and where its files are. The ⚙ button opens the game's folder, changes the cover, edits the description or copies the path.
+- **Game page**: click a game to see its cover, a play button, "start with MTool", last played, play time, your own description, and where its files are. The ⚙ button opens the same menu as right-click.
+- **Right-click menu**: right-click any game (in the list, the grid or its page) for Play, Start with MTool, Open file location, Copy path, Properties, Change cover, Edit description, Rename, Remove from library and Uninstall.
+- **Rename / remove / uninstall**: renaming only changes the name shown in the launcher (the folder stays as it is; cover, play time and description follow the new name). Remove hides a game without touching its files and can be undone in ⚙ Settings. Uninstall shows the folder and its size, asks to confirm, then moves the folder to the Recycle Bin.
+- **Review new games**: when the launcher finds new folders in your games folders, it lists them first. Check the name, which exe to start and the category, untick anything that is not a game, then confirm. Nothing new is added to the library until you confirm.
 - **Play time**: games started from the launcher record when they were last played and for how long. A game that relaunches itself through another program may be under-counted.
-- **Import archives**: pick one or more zip/rar/7z files, with an optional password. They are extracted into a games folder, extra wrapper folders are removed, and the archive is moved to your archive folder (`Game Zips\<game>` by default).
+- **Import archives**: pick one or more zip/rar/7z files, with an optional password. They are extracted into a games folder, extra wrapper folders are removed, and the archive is moved to your archive folder (`Game Zips\<game>` by default). If the extracted game contains more archives, they are listed so you can pick which to extract too, and this repeats for archives inside those. Passwords can be remembered (encrypted for your Windows account in `passwords.dat`); remembered ones are offered in a list and tried automatically.
 - **Add by exe**: add a game that lives anywhere by picking its exe, and choose which category it appears under. Nothing is moved. Each category also has a **＋** button that adds a game straight into it.
 - **Settings window (⚙ 設定)**: title, games folders, archive folder, MTool folder, and a filter that hides folders by name.
 - Works with XUnity AutoTranslator: if a game folder has a `* (Patch and Run).lnk`, it is used to start the game.
@@ -66,9 +69,12 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 - **自動掃描**：遊戲資料夾裡的每個子資料夾就是一隻遊戲。啟動器會自動找出遊戲的 exe，並略過 `UnityCrashHandler`、`Config`、安裝程式這類輔助程式。像 `Game\v1.0`、`Game\DLC - Extra` 這種分版本或 DLC 的結構也支援，會先找主程式，再找 `DLC - ...` 資料夾。
 - **封面**：把 `<遊戲名>.jpg/png/webp/gif` 放進 `covers\`，或者點遊戲後按 **換封面**，選任何一張圖片。
 - **雙欄遊戲庫**：左邊是遊戲清單，類別可以收合，也可以搜尋；右邊是封面格的主頁。
-- **遊戲頁**：點一隻遊戲就會看到封面、開始遊戲按鈕、「用 MTool 開」、上次遊玩、遊玩時間、你自己寫的簡介，以及檔案位置。⚙ 按鈕可以打開遊戲資料夾、換封面、編輯簡介或複製路徑。
+- **遊戲頁**：點一隻遊戲就會看到封面、開始遊戲按鈕、「用 MTool 開」、上次遊玩、遊玩時間、你自己寫的簡介，以及檔案位置。⚙ 按鈕會打開和右鍵一樣的選單。
+- **右鍵選單**：在清單、封面格或遊戲頁上對遊戲按右鍵，可以開始遊戲、用 MTool 開、打開檔案位置、複製路徑、內容、換封面、編輯簡介、改名、從遊戲庫移除、解除安裝。
+- **改名／移除／解除安裝**：改名只會改啟動器顯示的名稱，資料夾不會變；封面、遊玩時間和簡介會跟著新名稱。移除只會把遊戲從遊戲庫隱藏，不會刪檔案，可以在 ⚙ 設定裡還原。解除安裝會先顯示資料夾和大小，確認後才把資料夾放進資源回收筒。
+- **檢查新遊戲**：啟動器在遊戲資料夾找到新資料夾時，會先列出來給你檢查名稱、用哪個 exe 開和類別，不是遊戲的可以取消勾選，確認後才會加入遊戲庫。
 - **遊玩時間**：從啟動器開的遊戲會記錄上次遊玩的時間和玩了多久。如果遊戲會經另一個程式重新啟動，時間可能會少算。
-- **匯入壓縮檔**：一次選一個或多個 zip/rar/7z，可以輸入密碼。它會解壓到遊戲資料夾、拿走多餘的外層資料夾，再把壓縮檔搬到你的壓縮檔資料夾（預設是 `Game Zips\<遊戲名>`）。
+- **匯入壓縮檔**：一次選一個或多個 zip/rar/7z，可以輸入密碼。它會解壓到遊戲資料夾、拿走多餘的外層資料夾，再把壓縮檔搬到你的壓縮檔資料夾（預設是 `Game Zips\<遊戲名>`）。如果解壓後裡面還有壓縮檔，會列出來讓你選要不要再解壓，裡面再有的話會重複這個步驟。密碼可以記住（用你的 Windows 帳戶加密，存在 `passwords.dat`），之後會列出來給你選，也會自動試。
 - **用 exe 加遊戲**：遊戲放在任何地方都可以，選它的 exe 就能加入，還可以選它顯示在哪個類別。遊戲不會被搬走。每個類別旁邊也有一個 **＋** 按鈕，可以直接把遊戲加進該類別。
 - **設定視窗（⚙ 設定）**：標題、遊戲資料夾、壓縮檔資料夾、MTool 資料夾，以及按名稱隱藏資料夾的過濾器。
 - 支援 XUnity AutoTranslator：如果遊戲資料夾裡有 `* (Patch and Run).lnk`，就會用它來開遊戲。

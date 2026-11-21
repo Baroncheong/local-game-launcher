@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Local Game Launcher</title>
-<hta:application id="app" applicationname="LocalGameLauncher" border="thick" windowstate="maximize" singleinstance="yes" icon="logo.ico">
+<hta:application id="app" applicationname="LocalGameLauncher" border="thick" windowstate="maximize" singleinstance="yes" icon="logo.ico" contextmenu="no">
 <style>
   /* two-pane library: game list on the left, home grid or game page on the right. Neon yellow + cyan on near-black. */
   html, body { height:100%; }
@@ -20,7 +20,7 @@
   h2 { font-size:13px; color:#00f0ff; margin:22px 0 8px 4px; font-weight:normal; letter-spacing:4px; text-transform:uppercase;
        border-bottom:1px solid #00f0ff; padding-bottom:4px; text-shadow:0 0 6px #00f0ff; }
   h2:before { content:"// "; color:#ff2a6d; }
-  input, textarea { background:#0d1018; color:#e8f7ff; border:1px solid #00f0ff; font-family:inherit; padding:5px 8px; box-sizing:border-box; }
+  input, textarea, select { background:#0d1018; color:#e8f7ff; border:1px solid #00f0ff; font-family:inherit; padding:5px 8px; box-sizing:border-box; }
   #search { margin:10px; width:278px; font-size:14px; border-left:4px solid #fcee0a; }
   .btn { margin-left:6px; padding:6px 14px; background:transparent; color:#00f0ff; border:1px solid #00f0ff; cursor:pointer;
          font-family:inherit; letter-spacing:1px; text-transform:uppercase; }
@@ -28,9 +28,13 @@
   .plus { padding:0 8px; font-size:14px; color:#fcee0a; border-color:#fcee0a; letter-spacing:0; }
   .pink { color:#07080c; background:#fcee0a; border-color:#fcee0a; }
   .pink:hover { background:#fff36b; box-shadow:0 0 14px #fcee0a; color:#07080c; }
+  .danger { color:#ff2a6d; border-color:#ff2a6d; }
+  .danger:hover { background:#ff2a6d; color:#07080c; box-shadow:0 0 12px #ff2a6d; }
   .big { padding:10px 18px; margin:4px; font-size:14px; }
   .play { padding:14px 46px; font-size:18px; font-weight:bold; margin:0 8px 0 0; color:#06200f; background:#3ddc84; border-color:#3ddc84; letter-spacing:3px; }
   .play:hover { background:#7dffb2; border-color:#7dffb2; color:#06200f; box-shadow:0 0 18px #3ddc84; }
+  #newbar { display:none; margin:8px 10px; padding:8px 10px; border:1px solid #fcee0a; color:#fcee0a; cursor:pointer; font-size:12px; }
+  #newbar:hover { background:#fcee0a; color:#07080c; }
   /* sidebar */
   .nav { padding:8px 12px; cursor:pointer; color:#fcee0a; letter-spacing:2px; font-size:13px; }
   .cat { padding:7px 10px; margin-top:6px; cursor:pointer; color:#00f0ff; font-size:12px; letter-spacing:2px; text-transform:uppercase; background:#0f131c; border-top:1px solid #1f3a44; }
@@ -59,13 +63,26 @@
   .stat .k { color:#3d9fb0; font-size:11px; letter-spacing:2px; }
   .stat .v { font-size:15px; margin-top:3px; }
   #gear { position:absolute; right:14px; top:20px; }
-  #menu { display:none; position:absolute; right:14px; top:58px; background:#0b0d14; border:1px solid #00f0ff; z-index:5; box-shadow:0 0 18px rgba(0,240,255,.4); }
-  #menu div { padding:9px 18px; cursor:pointer; font-size:13px; }
-  #menu div:hover { background:#00f0ff; color:#07080c; }
+  .menu { display:none; position:absolute; background:#0b0d14; border:1px solid #00f0ff; border-left:3px solid #fcee0a; z-index:20; min-width:190px; box-shadow:0 0 18px rgba(0,240,255,.4); }
+  .menu div { padding:8px 18px; cursor:pointer; font-size:13px; white-space:nowrap; }
+  .menu div:hover { background:#00f0ff; color:#07080c; }
+  .menu div.sep { padding:0; height:1px; margin:4px 0; background:#1f3a44; cursor:default; }
+  .menu div.red { color:#ff2a6d; }
+  .menu div.red:hover { background:#ff2a6d; color:#07080c; }
+  .menu div.head { color:#fcee0a; cursor:default; font-size:12px; border-bottom:1px solid #1f3a44; max-width:300px; overflow:hidden; text-overflow:ellipsis; }
+  .menu div.head:hover { background:transparent; color:#fcee0a; }
+  #menu { right:14px; top:58px; }
   #desc { white-space:pre-wrap; line-height:1.6; font-size:14px; color:#cfe3ea; font-family:"Microsoft JhengHei","Segoe UI",sans-serif; }
   #msg { color:#fcee0a; margin:8px 0 0 2px; height:18px; text-shadow:0 0 6px #fcee0a; font-size:13px; }
   .panel { background:#0b0d14; border:1px solid #00f0ff; border-left:4px solid #fcee0a; box-shadow:0 0 24px rgba(0,240,255,.35); padding:20px; }
   .path { color:#00f0ff; font-size:12px; word-break:break-all; }
+  .overlay { display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.65); z-index:30; }
+  .dtitle { font-size:18px; margin-bottom:12px; color:#fcee0a; letter-spacing:3px; }
+  table.rv { width:100%; border-collapse:collapse; font-size:12px; }
+  table.rv th { color:#00f0ff; text-align:left; font-weight:normal; padding:4px 6px; border-bottom:1px solid #00f0ff; }
+  table.rv td { padding:5px 6px; border-bottom:1px solid #1f3a44; vertical-align:top; }
+  table.rv input.t, table.rv select { width:100%; font-size:12px; padding:3px 5px; }
+  table.rv .p { color:#3d6b78; font-size:11px; word-break:break-all; }
 </style>
 </head>
 <body>
@@ -73,6 +90,7 @@
 <div id="main">
   <div id="side">
     <input id="search" placeholder="搵遊戲…" onkeyup="filter()">
+    <div id="newbar" onclick="openReview()"></div>
     <div class="nav" id="navHome" onclick="showHome()">▣ 主頁 HOME</div>
     <div id="tree"></div>
   </div>
@@ -88,12 +106,7 @@
         <span class="stat"><div class="k">遊玩時間</div><div class="v" id="sTime"></div></span>
         <span class="stat"><div class="k">類別</div><div class="v" id="sCat"></div></span>
         <button class="btn big" id="gear" title="檔案同設定" onclick="toggleMenu()">⚙</button>
-        <div id="menu">
-          <div onclick="openFolder()">打開遊戲資料夾</div>
-          <div onclick="changeCover()">換封面</div>
-          <div onclick="editDesc()">編輯簡介</div>
-          <div onclick="copyPath()">複製路徑</div>
-        </div>
+        <div id="menu" class="menu"></div>
       </div>
       <div id="msg"></div>
       <h2>簡介</h2>
@@ -105,24 +118,39 @@
       </div>
       <h2>檔案</h2>
       <div class="path" id="gpath"></div>
-      <div style="margin-top:8px"><button class="btn" style="margin-left:0" onclick="openFolder()">打開遊戲資料夾</button></div>
+      <div style="margin-top:8px"><button class="btn" style="margin-left:0" onclick="openFolder(cur)">打開遊戲資料夾</button></div>
     </div>
   </div>
 </div>
-<div id="settings" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9">
-  <div class="panel" style="width:640px;margin:70px auto;font-size:13px">
-    <div style="font-size:18px;margin-bottom:12px;color:#fcee0a;letter-spacing:3px">// 設定 SETTINGS</div>
-    標題<br><input id="sTitle" style="width:100%;margin-bottom:10px">
-    遊戲資料夾（每行一個：顯示名|資料夾）<button class="btn" onclick="browseRoot()">＋ 揀資料夾</button><br>
-    <textarea id="sRoots" rows="5" style="width:100%;margin:4px 0 10px"></textarea>
-    壓縮檔存放位置（匯入 zip 後搬去呢度）<button class="btn" onclick="browseInto('sZips')">揀</button><br><input id="sZips" style="width:100%;margin-bottom:10px">
-    MTool 資料夾（留空就唔顯示 MTool）<button class="btn" onclick="browseInto('sMtool')">揀</button><br><input id="sMtool" style="width:100%;margin-bottom:10px">
-    隱藏名包含以下字嘅資料夾（正規表示式，可留空）<br><input id="sHide" style="width:100%;margin-bottom:14px">
-    <button class="btn big pink" onclick="saveSettings()">儲存</button>
-    <button class="btn big" onclick="shellApp.ShellExecute(COVERS)">打開封面資料夾</button>
-    <button class="btn big" onclick="document.getElementById('settings').style.display='none'">取消</button>
+<div id="ctx" class="menu"></div>
+<!-- generic in-app dialog -->
+<div id="dlg" class="overlay"><div class="panel" id="dlgBox" style="width:560px;margin:120px auto">
+  <div class="dtitle" id="dlgTitle"></div><div id="dlgBody" style="font-size:13px;line-height:1.6"></div>
+  <div id="dlgBtns" style="margin-top:16px;text-align:right"></div>
+</div></div>
+<!-- review of newly detected games -->
+<div id="review" class="overlay"><div class="panel" style="width:1100px;margin:40px auto;max-height:80%;overflow-y:auto">
+  <div class="dtitle">// 自動偵測到嘅新遊戲</div>
+  <div style="font-size:13px;color:#cfe3ea;margin-bottom:10px">檢查吓有冇偵測錯。可以改名、改用邊個 exe 開、改類別，唔係遊戲嘅就唔好剔。撳「確認加入」之後先會放入遊戲庫。</div>
+  <table class="rv" id="rvTable"></table>
+  <div style="margin-top:16px;text-align:right">
+    <button class="btn big pink" onclick="saveReview()">確認加入</button>
+    <button class="btn big" onclick="$('review').style.display='none'">遲啲先</button>
   </div>
-</div>
+</div></div>
+<div id="settings" class="overlay"><div class="panel" style="width:640px;margin:50px auto;font-size:13px;max-height:85%;overflow-y:auto">
+  <div class="dtitle">// 設定 SETTINGS</div>
+  標題<br><input id="sTitle" style="width:100%;margin-bottom:10px">
+  遊戲資料夾（每行一個：顯示名|資料夾）<button class="btn" onclick="browseRoot()">＋ 揀資料夾</button><br>
+  <textarea id="sRoots" rows="5" style="width:100%;margin:4px 0 10px"></textarea>
+  壓縮檔存放位置（匯入 zip 後搬去呢度）<button class="btn" onclick="browseInto('sZips')">揀</button><br><input id="sZips" style="width:100%;margin-bottom:10px">
+  MTool 資料夾（留空就唔顯示 MTool）<button class="btn" onclick="browseInto('sMtool')">揀</button><br><input id="sMtool" style="width:100%;margin-bottom:10px">
+  隱藏名包含以下字嘅資料夾（正規表示式，可留空）<br><input id="sHide" style="width:100%;margin-bottom:14px">
+  <div id="hiddenList"></div>
+  <button class="btn big pink" onclick="saveSettings()">儲存</button>
+  <button class="btn big" onclick="shellApp.ShellExecute(COVERS)">打開封面資料夾</button>
+  <button class="btn big" onclick="$('settings').style.display='none'">取消</button>
+</div></div>
 <script>
 var fso = new ActiveXObject("Scripting.FileSystemObject");
 var shellApp = new ActiveXObject("Shell.Application");
@@ -154,14 +182,21 @@ function loadConfig() {
   }
 }
 
-// tab-separated UTF-16 files keyed by the first column: returns { key: [col1, col2, ...] }
+// tab-separated UTF-16 files keyed by the first column: { key: [col1, col2, ...] } (keys kept in file order in map.__order)
 function readTsv(file) {
-  var map = {}, path = APP + "\\" + file;
+  var map = { __order: [] }, path = APP + "\\" + file;
   if (!fso.FileExists(path)) return map;
   var ts = fso.OpenTextFile(path, 1, false, -1);
-  while (!ts.AtEndOfStream) { var p = ts.ReadLine().split("\t"); if (p[0]) map[p[0]] = p.slice(1); }
+  while (!ts.AtEndOfStream) { var p = ts.ReadLine().split("\t"); if (p[0]) { if (!map.hasOwnProperty(p[0])) map.__order.push(p[0]); map[p[0]] = p.slice(1); } }
   ts.Close(); return map;
 }
+function writeTsv(file, map) {
+  var ts = fso.OpenTextFile(APP + "\\" + file, 2, true, -1);
+  for (var i = 0; i < map.__order.length; i++) { var k = map.__order[i]; if (map.hasOwnProperty(k) && map[k]) ts.WriteLine(k + "\t" + map[k].join("\t")); }
+  ts.Close();
+}
+function tsvSet(map, key, cols) { if (!map.hasOwnProperty(key) || !map[key]) map.__order.push(key); map[key] = cols; }
+function tsvDel(map, key) { map[key] = null; }
 
 function pickTarget(dir, exeOnly) {
   var f = fso.GetFolder(dir), e, exes = [], lnk = null;
@@ -171,7 +206,7 @@ function pickTarget(dir, exeOnly) {
     else if (/\.exe$/i.test(n) && !SKIP_EXE.test(n)) exes.push(e.item().Path);
   }
   if (lnk && !exeOnly) return lnk;
-  if (exes.length) return exes[0]; // shortcut: first exe; if a game ever picks the wrong one, add it to SKIP_EXE
+  if (exes.length) return exes[0]; // shortcut: first exe; the review list lets the user pick another one
   // version / DLC subfolders: main game before "DLC - ..." folders
   var subs = [];
   for (e = new Enumerator(f.SubFolders); !e.atEnd(); e.moveNext()) subs.push(e.item());
@@ -182,48 +217,70 @@ function pickTarget(dir, exeOnly) {
   }
   return null;
 }
+// every exe / shortcut up to 3 levels down, for the review list's dropdown
+function listExes(dir, depth, out) {
+  out = out || []; var f = fso.GetFolder(dir), e;
+  for (e = new Enumerator(f.Files); !e.atEnd(); e.moveNext()) if (/\.(exe|lnk)$/i.test(e.item().Name)) out.push(e.item().Path);
+  if (depth > 0) for (e = new Enumerator(f.SubFolders); !e.atEnd(); e.moveNext()) listExes(e.item().Path, depth - 1, out);
+  return out;
+}
 
 function cover(name) {
   var exts = ["jpg", "png", "jpeg", "webp", "gif"];
   for (var i = 0; i < exts.length; i++) if (fso.FileExists(COVERS + name + "." + exts[i])) return COVERS + name + "." + exts[i];
   return null;
 }
-function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
 
 // ---- library scan ----
-var games = [], cats = []; // cats: [{label, root (index or -1), ids: [game index]}]
-function addGameTo(cat, name, target, dir) { cat.ids.push(games.length); games.push({ name: name, target: target, dir: dir, cat: cat.label, cover: cover(name) }); }
+// games.txt (UTF-16): folder<TAB>ok|hidden<TAB>name<TAB>exe<TAB>category  (empty field = use what was detected)
+var games = [], cats = [], pending = [], OVR; // cats: [{label, root (index or -1), ids}]
+function rootLabel(label) { for (var r = 0; r < CFG.roots.length; r++) if (CFG.roots[r][0] == label) return r; return -1; }
 function scan() {
+  OVR = readTsv("games.txt");
+  var firstRun = !fso.FileExists(APP + "\\games.txt"), found = [], x, r;
+  for (r = 0; r < CFG.roots.length; r++) {
+    if (!fso.FolderExists(CFG.roots[r][1])) continue;
+    for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
+      var d = e.item();
+      if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
+      var o = OVR[d.Path];
+      if (!o) {
+        var auto = pickTarget(d.Path);
+        if (firstRun) { if (auto) tsvSet(OVR, d.Path, ["ok", "", "", ""]); }  // games already in the library count as confirmed
+        else pending.push({ dir: d.Path, folder: d.Name, root: r, auto: auto });
+        if (!firstRun || !auto) continue;
+        o = OVR[d.Path];
+      }
+      if (o[0] == "hidden") continue;
+      var target = o[2] && fso.FileExists(o[2]) ? o[2] : pickTarget(d.Path);
+      if (!target) continue;
+      found.push({ name: o[1] || d.Name, target: target, dir: d.Path, cat: o[3] || CFG.roots[r][0], kind: "root", key: d.Path });
+    }
+  }
+  if (firstRun) writeTsv("games.txt", OVR);
   // games added by picking an exe (add-game.ps1), kept where they are: name<TAB>exe<TAB>category
-  var extras = [], EXTRA = APP + "\\extra-games.txt", x;
+  var EXTRA = APP + "\\extra-games.txt";
   if (fso.FileExists(EXTRA)) {
     var ts = fso.OpenTextFile(EXTRA, 1, false, -1);
     while (!ts.AtEndOfStream) {
-      var parts = ts.ReadLine().split("\t");
-      if (parts.length >= 2 && fso.FileExists(parts[1])) extras.push(parts); // skip games that were moved/deleted
+      var p = ts.ReadLine().split("\t");
+      if (p.length >= 2 && fso.FileExists(p[1])) found.push({ name: p[0], target: p[1], dir: fso.GetParentFolderName(p[1]), cat: p[2] || OTHER, kind: "extra", key: p[1] });
     }
     ts.Close();
   }
-  for (var r = 0; r < CFG.roots.length; r++) {
-    var cat = { label: CFG.roots[r][0], root: r, ids: [] };
-    if (fso.FolderExists(CFG.roots[r][1])) {
-      for (var e = new Enumerator(fso.GetFolder(CFG.roots[r][1]).SubFolders); !e.atEnd(); e.moveNext()) {
-        var d = e.item();
-        if (/^zip$/i.test(d.Name) || /^\[Tool\]/i.test(d.Name) || /^_importing_/.test(d.Name) || (CFG.hide && CFG.hide.test(d.Name))) continue;
-        var target = pickTarget(d.Path);
-        if (target) addGameTo(cat, d.Name, target, d.Path);
-      }
-    }
-    for (x = 0; x < extras.length; x++) if (extras[x][2] == cat.label) { addGameTo(cat, extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1])); extras[x].used = true; }
-    cats.push(cat);
+  for (r = 0; r < CFG.roots.length; r++) cats.push({ label: CFG.roots[r][0], root: r, ids: [] });
+  var other = { label: OTHER, root: -1, ids: [] };
+  for (x = 0; x < found.length; x++) {
+    var g = found[x], ri = rootLabel(g.cat), cat = ri >= 0 ? cats[ri] : other;
+    g.cat = cat.label; g.cover = cover(g.name); cat.ids.push(games.length); games.push(g);
   }
-  var other = { label: OTHER, root: -1, ids: [] }; // no category, or a category that no longer exists
-  for (x = 0; x < extras.length; x++) if (!extras[x].used) addGameTo(other, extras[x][0], extras[x][1], fso.GetParentFolderName(extras[x][1]));
   if (other.ids.length) cats.push(other);
+  if (pending.length) { $("newbar").style.display = "block"; $("newbar").innerText = "★ 偵測到 " + pending.length + " 隻新遊戲，撳呢度檢查同確認"; }
 }
 
 // ---- rendering ----
-var collapsed = {}; // category label -> true; kept in window.name so it survives the reload after an import
+var collapsed = {}; // category label -> true; kept in window.name so it survives reloads
 function loadCollapsed() { var a = (window.name || "").split("\n"); for (var i = 0; i < a.length; i++) if (a[i]) collapsed[a[i]] = true; }
 function toggleCat(c) {
   var l = cats[c].label; if (collapsed[l]) delete collapsed[l]; else collapsed[l] = true;
@@ -239,7 +296,7 @@ function renderTree() {
       var i = cat.ids[k], g = games[i];
       if (q && g.name.toLowerCase().indexOf(q) < 0) continue;
       n++;
-      rows += "<div class='item" + (i == cur ? " sel" : "") + "' onclick='showGame(" + i + ")' title=\"" + esc(g.name) + "\">" +
+      rows += "<div class='item" + (i == cur ? " sel" : "") + "' onclick='showGame(" + i + ")' oncontextmenu='return ctxMenu(" + i + ")' title=\"" + esc(g.name) + "\">" +
         (g.cover ? "<img src=\"" + esc(g.cover) + "\">" : "<span class='noimg'></span>") + esc(g.name) + "</div>";
     }
     var open = q ? true : !collapsed[cat.label];
@@ -255,12 +312,12 @@ function renderHome() {
     for (var k = 0; k < cat.ids.length; k++) {
       var i = cat.ids[k], g = games[i];
       if (q && g.name.toLowerCase().indexOf(q) < 0) continue;
-      sec += "<div class='card' onclick='showGame(" + i + ")' title=\"" + esc(g.target) + "\"><div class='cover'>" +
+      sec += "<div class='card' onclick='showGame(" + i + ")' oncontextmenu='return ctxMenu(" + i + ")' title=\"" + esc(g.target) + "\"><div class='cover'>" +
         (g.cover ? "<img src=\"" + esc(g.cover) + "\">" : esc(g.name)) + "</div><div class='name'>" + esc(g.name) + "</div></div>";
     }
     if (sec || !q) h += "<h2>" + esc(cat.label) + " " + plusBtn(cat) + "</h2><div class='grid'>" + sec + "</div>";
   }
-  if (!games.length) h = "<p style='color:#00f0ff'>未有遊戲。撳「⚙ 設定」加遊戲資料夾，或者撳「＋ 揀 exe 加遊戲」。</p>" + h;
+  if (!games.length && !pending.length) h = "<p style='color:#00f0ff'>未有遊戲。撳「⚙ 設定」加遊戲資料夾，或者撳「＋ 揀 exe 加遊戲」。</p>" + h;
   $("home").innerHTML = h;
 }
 function filter() { renderTree(); if (cur < 0) renderHome(); }
@@ -279,9 +336,10 @@ function fmtTime(sec) {
 function showGame(i) {
   cur = i; var g = games[i];
   location.hash = encodeURIComponent(g.name); // survives the reload after changing a cover etc.
-  $("home").style.display = "none"; $("page").style.display = ""; $("menu").style.display = "none";
+  $("home").style.display = "none"; $("page").style.display = ""; hideMenus();
   $("desc").style.display = ""; $("descEdit").style.display = "none"; $("msg").innerText = "";
   $("hero").innerHTML = g.cover ? "<img src=\"" + esc(g.cover) + "\">" : esc(g.name);
+  $("hero").oncontextmenu = function () { return ctxMenu(cur); };
   $("gname").innerText = g.name; $("sCat").innerText = g.cat; $("gpath").innerText = g.target;
   var st = readTsv("playtime.txt")[g.name] || [];   // [seconds, last played]  (written by play.ps1)
   $("sTime").innerText = fmtTime(st[0]); $("sLast").innerText = st[1] || "未玩過";
@@ -292,24 +350,63 @@ function showGame(i) {
   $("content").scrollTop = 0; renderTree();
 }
 
+// ---- menus: right-click menu at the cursor, and the ⚙ menu on the game page ----
+function menuHtml(i, withHead) {
+  var g = games[i], h = withHead ? "<div class='head'>" + esc(g.name) + "</div>" : "";
+  h += "<div onclick='hideMenus();run(" + i + ")'>▶ 開始遊戲</div>";
+  if (CFG.mtool) h += "<div onclick='hideMenus();runMTool(" + i + ")'>用 MTool 開</div>";
+  h += "<div class='sep'></div>";
+  h += "<div onclick='hideMenus();openFolder(" + i + ")'>打開檔案位置</div>";
+  h += "<div onclick='hideMenus();copyPath(" + i + ")'>複製路徑</div>";
+  if (withHead) h += "<div onclick='hideMenus();showGame(" + i + ")'>內容（遊戲頁）</div>";
+  h += "<div class='sep'></div>";
+  h += "<div onclick='hideMenus();changeCover(" + i + ")'>換封面</div>";
+  h += "<div onclick='hideMenus();showGame(" + i + ");editDesc()'>編輯簡介</div>";
+  h += "<div onclick='hideMenus();renameGame(" + i + ")'>改名</div>";
+  h += "<div class='sep'></div>";
+  h += "<div onclick='hideMenus();removeGame(" + i + ")'>從遊戲庫移除</div>";
+  h += "<div class='red' onclick='hideMenus();uninstallGame(" + i + ")'>解除安裝（刪除遊戲）</div>";
+  return h;
+}
+function hideMenus() { $("ctx").style.display = "none"; $("menu").style.display = "none"; }
+function ctxMenu(i) {
+  var m = $("ctx"), e = window.event;
+  m.innerHTML = menuHtml(i, true); m.style.display = "block";
+  var x = e.clientX, y = e.clientY, w = m.offsetWidth, h = m.offsetHeight;
+  var W = document.documentElement.clientWidth, H = document.documentElement.clientHeight;
+  m.style.left = Math.max(0, Math.min(x, W - w - 4)) + "px"; m.style.top = Math.max(0, Math.min(y, H - h - 4)) + "px";
+  e.cancelBubble = true; return false;
+}
+function toggleMenu() { var m = $("menu"); if (m.style.display == "block") { m.style.display = "none"; return; } m.innerHTML = menuHtml(cur, false); m.style.display = "block"; window.event.cancelBubble = true; }
+document.onclick = function () { hideMenus(); };
+document.oncontextmenu = function () { var t = window.event.srcElement.tagName; hideMenus(); return t == "INPUT" || t == "TEXTAREA"; }; // keep copy/paste in text boxes
+
+// ---- in-app dialog ----
+var dlgFns = [];
+function dialog(title, bodyHtml, buttons) { // buttons: [{text, cls, fn}] ; fn returning false keeps the dialog open
+  dlgFns = []; var b = "";
+  for (var i = 0; i < buttons.length; i++) { dlgFns.push(buttons[i].fn); b += "<button class='btn big " + (buttons[i].cls || "") + "' onclick='dlgClick(" + i + ")'>" + esc(buttons[i].text) + "</button>"; }
+  $("dlgTitle").innerText = "// " + title; $("dlgBody").innerHTML = bodyHtml; $("dlgBtns").innerHTML = b; $("dlg").style.display = "block";
+}
+function dlgClick(i) { var f = dlgFns[i]; if (f && f() === false) return; $("dlg").style.display = "none"; }
+function info(title, text) { dialog(title, esc(text).replace(/\n/g, "<br>"), [{ text: "好", cls: "pink" }]); }
+
 // ---- game actions ----
-function toggleMenu() { var m = $("menu"); m.style.display = m.style.display == "block" ? "none" : "block"; }
 function psCmd(script, args, hidden) { return 'powershell -NoProfile -ExecutionPolicy Bypass' + (hidden ? ' -WindowStyle Hidden' : '') + ' -File "' + APP + '\\' + script + '" ' + args; }
-function ps(script, args, show) { wsh.Run(psCmd(script, args, !show), show ? 1 : 0, true); location.reload(); } // wait, then rescan
+function ps(script, args, show) { var rc = wsh.Run(psCmd(script, args, !show), show ? 1 : 0, true); location.reload(); return rc; } // wait, then rescan
 function q(s) { return '"' + String(s).replace(/"/g, "") + '"'; }
 
 function run(i) {
   var g = games[i];
   // play.ps1 starts the game in its own folder, then records last-played and play time when it exits
   wsh.Run(psCmd("play.ps1", "-Target " + q(g.target) + " -Name " + q(g.name), true), 0, false);
-  $("msg").innerText = "啟動緊：" + g.name;
-  $("sLast").innerText = "啱啱";
+  if (i == cur) { $("msg").innerText = "啟動緊：" + g.name; $("sLast").innerText = "啱啱"; }
 }
 function openMTool() {
   var exe = CFG.mtool + "\\Tool\\MTool.exe", bat = CFG.mtool + "\\Use me to open the Tool.bat";
   if (fso.FileExists(bat)) shellApp.ShellExecute(bat, "", CFG.mtool, "open", 0); // its own bat does the permission checks
   else if (fso.FileExists(exe)) shellApp.ShellExecute(exe, "", CFG.mtool + "\\Tool", "open", 1);
-  else { alert("搵唔到 MTool：" + CFG.mtool); return false; }
+  else { info("MTool", "搵唔到 MTool：" + CFG.mtool); return false; }
   return true;
 }
 // MTool takes no command-line game arg: open it, select the game's exe in Explorer and copy its path.
@@ -318,21 +415,99 @@ function runMTool(i) {
   if (!openMTool()) return;
   try { window.clipboardData.setData("Text", exe); } catch (e) {}
   shellApp.ShellExecute("explorer.exe", "/select,\"" + exe + "\"", "", "open", 1);
-  $("msg").innerText = "開緊 MTool：將 " + fso.GetFileName(exe) + " 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）";
+  if (i == cur) $("msg").innerText = "開緊 MTool：將 " + fso.GetFileName(exe) + " 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）";
 }
-function openFolder() { $("menu").style.display = "none"; shellApp.ShellExecute("explorer.exe", "/select,\"" + games[cur].target + "\"", "", "open", 1); }
-function copyPath() { $("menu").style.display = "none"; try { window.clipboardData.setData("Text", games[cur].target); $("msg").innerText = "已複製路徑"; } catch (e) {} }
-function changeCover() { $("menu").style.display = "none"; ps("set-cover.ps1", "-Name " + q(games[cur].name), false); }
+function openFolder(i) { shellApp.ShellExecute("explorer.exe", "/select,\"" + games[i].target + "\"", "", "open", 1); }
+function copyPath(i) { try { window.clipboardData.setData("Text", games[i].target); if (i == cur) $("msg").innerText = "已複製路徑"; } catch (e) {} }
+function changeCover(i) { location.hash = encodeURIComponent(games[i].name); ps("set-cover.ps1", "-Name " + q(games[i].name), false); }
 function editDesc() {
-  $("menu").style.display = "none"; $("desc").style.display = "none"; $("descEdit").style.display = "";
+  hideMenus(); $("desc").style.display = "none"; $("descEdit").style.display = "";
   $("descBox").value = games[cur].desc || ""; $("descBox").focus();
 }
 function saveDesc() {
   var map = readTsv("descriptions.txt"), text = $("descBox").value.replace(/\t/g, " ").replace(/\r?\n/g, "\\n");
-  if (text) map[games[cur].name] = [text]; else delete map[games[cur].name];
-  var ts = fso.OpenTextFile(APP + "\\descriptions.txt", 2, true, -1);
-  for (var k in map) ts.WriteLine(k + "\t" + map[k][0]);
-  ts.Close(); showGame(cur);
+  if (text) tsvSet(map, games[cur].name, [text]); else tsvDel(map, games[cur].name);
+  writeTsv("descriptions.txt", map); showGame(cur);
+}
+
+function renameGame(i) {
+  var g = games[i];
+  dialog("改名", "新嘅名：<br><input id='rnBox' style='width:100%;margin-top:6px' onkeydown='if(window.event.keyCode==13)dlgClick(0)' value=\"" + esc(g.name) + "\">" +
+    (g.kind == "root" ? "<div class='path' style='margin-top:8px'>只係改遊戲庫顯示嘅名，資料夾唔會郁：" + esc(g.dir) + "</div>" : ""),
+    [{ text: "改名", cls: "pink", fn: function () {
+        var n = $("rnBox").value.replace(/[\t\r\n"]/g, " ").replace(/^\s+|\s+$/g, "");
+        if (!n || n == g.name) return;
+        for (var k = 0; k < games.length; k++) if (k != i && games[k].name == n) { info("改名", "已經有一隻遊戲叫「" + n + "」。"); return; }
+        if (g.kind == "root") { var o = OVR[g.key] || ["ok", "", "", ""]; o[1] = n; tsvSet(OVR, g.key, o); writeTsv("games.txt", OVR); }
+        else setExtra(g.key, [n, g.key, g.cat == OTHER ? "" : g.cat]);
+        moveKey(g.name, n); location.hash = encodeURIComponent(n); location.reload();
+      } }, { text: "取消" }]);
+  setTimeout(function () { try { $("rnBox").select(); } catch (e) {} }, 50);
+}
+// carry cover, play time and description over to the new name
+function moveKey(oldN, newN) {
+  var exts = ["jpg", "png", "jpeg", "webp", "gif"];
+  for (var x = 0; x < exts.length; x++) { var f = COVERS + oldN + "." + exts[x]; if (fso.FileExists(f) && !fso.FileExists(COVERS + newN + "." + exts[x])) fso.MoveFile(f, COVERS + newN + "." + exts[x]); }
+  var files = ["playtime.txt", "descriptions.txt"];
+  for (var y = 0; y < files.length; y++) { var m = readTsv(files[y]); if (m[oldN]) { var v = m[oldN]; tsvDel(m, oldN); tsvSet(m, newN, v); writeTsv(files[y], m); } }
+}
+function setExtra(exe, cols) { // cols = null removes the game from extra-games.txt
+  var m = { __order: [] }, path = APP + "\\extra-games.txt", out = [];
+  if (fso.FileExists(path)) { var ts = fso.OpenTextFile(path, 1, false, -1); while (!ts.AtEndOfStream) { var l = ts.ReadLine(); if (l) out.push(l); } ts.Close(); }
+  var res = [];
+  for (var k = 0; k < out.length; k++) if (out[k].split("\t")[1] != exe) res.push(out[k]);
+  if (cols) res.push(cols.join("\t"));
+  var w = fso.OpenTextFile(path, 2, true, -1); for (k = 0; k < res.length; k++) w.WriteLine(res[k]); w.Close();
+}
+function removeGame(i) {
+  var g = games[i];
+  dialog("從遊戲庫移除", "將「" + esc(g.name) + "」由遊戲庫拎走？<br>遊戲檔案唔會刪，之後可以喺「⚙ 設定」度還原" + (g.kind == "extra" ? "，或者再用「＋」加返。" : "。"),
+    [{ text: "移除", cls: "pink", fn: function () {
+        if (g.kind == "root") { var o = OVR[g.key] || ["ok", "", "", ""]; o[0] = "hidden"; tsvSet(OVR, g.key, o); writeTsv("games.txt", OVR); }
+        else setExtra(g.key, null);
+        location.hash = ""; location.reload();
+      } }, { text: "取消" }]);
+}
+function uninstallGame(i) {
+  var g = games[i], protect = [];
+  for (var r = 0; r < CFG.roots.length; r++) protect.push(CFG.roots[r][1]);
+  // uninstall.ps1 shows its own confirmation (folder + size) and moves the folder to the Recycle Bin
+  var rc = wsh.Run(psCmd("uninstall.ps1", "-Name " + q(g.name) + " -Folder " + q(g.dir) + " -Protect " + q(protect.join("|")), true), 0, true);
+  if (rc == 0) {
+    if (g.kind == "root") { tsvDel(OVR, g.key); writeTsv("games.txt", OVR); } else setExtra(g.key, null);
+    location.hash = "";
+  }
+  location.reload();
+}
+
+// ---- review of newly detected games ----
+function catOptions(sel) {
+  var h = "";
+  for (var r = 0; r < CFG.roots.length; r++) h += "<option" + (CFG.roots[r][0] == sel ? " selected" : "") + ">" + esc(CFG.roots[r][0]) + "</option>";
+  return h;
+}
+function openReview() {
+  var h = "<tr><th style='width:40px'>加入</th><th style='width:24%'>名</th><th>用邊個開</th><th style='width:13%'>類別</th></tr>";
+  for (var k = 0; k < pending.length; k++) {
+    var p = pending[k], exes = listExes(p.dir, 3), opts = "";
+    if (p.auto && exes.join("|").indexOf(p.auto) < 0) exes.unshift(p.auto);
+    for (var x = 0; x < exes.length; x++) opts += "<option value=\"" + esc(exes[x]) + "\"" + (exes[x] == p.auto ? " selected" : "") + ">" + esc(exes[x].substring(p.dir.length + 1)) + "</option>";
+    if (!exes.length) opts = "<option value=''>（搵唔到 exe）</option>";
+    h += "<tr><td><input type='checkbox' id='rvOn" + k + "'" + (p.auto ? " checked" : "") + "></td>" +
+      "<td><input class='t' id='rvName" + k + "' value=\"" + esc(p.folder) + "\"><div class='p'>" + esc(p.dir) + "</div></td>" +
+      "<td><select id='rvExe" + k + "'>" + opts + "</select></td>" +
+      "<td><select id='rvCat" + k + "'>" + catOptions(CFG.roots[p.root][0]) + "</select></td></tr>";
+  }
+  $("rvTable").innerHTML = h; $("review").style.display = "block";
+}
+function saveReview() {
+  for (var k = 0; k < pending.length; k++) {
+    var p = pending[k], on = $("rvOn" + k).checked, exe = $("rvExe" + k).value;
+    var name = $("rvName" + k).value.replace(/[\t\r\n"]/g, " ").replace(/^\s+|\s+$/g, ""), cat = $("rvCat" + k).value;
+    if (!on || !exe) { tsvSet(OVR, p.dir, ["hidden", "", "", ""]); continue; }   // unticked: remembered as "not a game", restorable in settings
+    tsvSet(OVR, p.dir, ["ok", name && name != p.folder ? name : "", exe != p.auto ? exe : "", cat != CFG.roots[p.root][0] ? cat : ""]);
+  }
+  writeTsv("games.txt", OVR); location.reload();
 }
 
 // ---- library actions ----
@@ -359,8 +534,15 @@ function openSettings() {
   for (var r = 0; r < CFG.roots.length; r++) roots.push(CFG.roots[r].join("|"));
   $("sTitle").value = CFG.title; $("sRoots").value = roots.join("\r\n"); $("sZips").value = CFG.zips;
   $("sMtool").value = CFG.mtool; $("sHide").value = CFG.hide ? CFG.hide.source : "";
+  var h = "";
+  for (var k = 0; k < OVR.__order.length; k++) {
+    var key = OVR.__order[k], o = OVR[key];
+    if (o && o[0] == "hidden" && fso.FolderExists(key)) h += "<div style='margin:3px 0'><button class='btn' style='margin:0 8px 0 0' onclick='restoreGame(" + k + ")'>還原</button>" + esc(o[1] || fso.GetFileName(key)) + " <span class='path'>" + esc(key) + "</span></div>";
+  }
+  $("hiddenList").innerHTML = h ? "已經移除嘅遊戲（檔案仲喺度）<div style='margin:6px 0 14px'>" + h + "</div>" : "";
   $("settings").style.display = "block";
 }
+function restoreGame(k) { var key = OVR.__order[k], o = OVR[key]; o[0] = "ok"; tsvSet(OVR, key, o); writeTsv("games.txt", OVR); location.reload(); }
 function browse() { var f = shellApp.BrowseForFolder(0, "揀資料夾", 0x51); return f ? f.Self.Path : ""; }
 function browseInto(id) { var p = browse(); if (p) $(id).value = p; }
 function browseRoot() {
@@ -386,6 +568,7 @@ loadConfig(); loadCollapsed(); scan(); buildButtons();
   for (var i = 0; i < games.length; i++) if (want && games[i].name == want) return showGame(i);
   showHome();
 })();
+if (pending.length) openReview();
 </script>
 </body>
 </html>

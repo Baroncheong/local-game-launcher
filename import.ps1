@@ -1,9 +1,9 @@
 ﻿# Import game archives (zip/rar/7z, several at once) into a games folder:
-# extract, drop wrapper folders, then move each archive into <Zips>\<game>
+# extract, drop wrapper folders, offer to extract archives found inside (repeats), then move each archive into <Zips>\<game>
 param([Parameter(Mandatory)][string]$Root, [string[]]$Files, [switch]$Quiet, [string]$Password = '', [string]$Zips = (Join-Path $PSScriptRoot 'Game Zips'))  # -Files/-Quiet: skip dialogs (testing)
-Add-Type -AssemblyName System.Windows.Forms
+. "$PSScriptRoot\ui.ps1"
 $7z = 'C:\Program Files\7-Zip\7z.exe'
-function Say($m) { if ($Quiet) { Write-Host $m } else { [System.Windows.Forms.MessageBox]::Show($m, '匯入遊戲') | Out-Null } }
+function Say($m) { if ($Quiet) { Write-Host $m } else { Show-UiMessage $m '匯入遊戲' } }
 if (-not (Test-Path $7z)) { Say "搵唔到 7-Zip：$7z"; exit 1 }
 
 if (-not $Files) {
@@ -15,61 +15,75 @@ if (-not $Files) {
   if ($dlg.ShowDialog() -ne 'OK') { exit 0 }
   $Files = $dlg.FileNames
 }
-
-# Ask whether to use a password. Returns '' for none, $null if cancelled.
-function AskPassword($title) {
-  $f = New-Object System.Windows.Forms.Form -Property @{ Text = $title; Width = 380; Height = 190; StartPosition = 'CenterScreen'; FormBorderStyle = 'FixedDialog'; MaximizeBox = $false; MinimizeBox = $false; TopMost = $true }
-  $cb = New-Object System.Windows.Forms.CheckBox -Property @{ Text = '用密碼解壓'; Left = 20; Top = 20; Width = 300 }
-  $tb = New-Object System.Windows.Forms.TextBox -Property @{ Left = 20; Top = 50; Width = 320; Enabled = $false; UseSystemPasswordChar = $false }
-  $cb.Add_CheckedChanged({ $tb.Enabled = $cb.Checked; if ($cb.Checked) { $tb.Focus() } })
-  $okB = New-Object System.Windows.Forms.Button -Property @{ Text = '開始'; Left = 180; Top = 95; Width = 75; DialogResult = 'OK' }
-  $noB = New-Object System.Windows.Forms.Button -Property @{ Text = '取消'; Left = 265; Top = 95; Width = 75; DialogResult = 'Cancel' }
-  $f.Controls.AddRange(@($cb, $tb, $okB, $noB)); $f.AcceptButton = $okB; $f.CancelButton = $noB
-  if ($f.ShowDialog() -ne 'OK') { return $null }
-  if ($cb.Checked) { return $tb.Text } else { return '' }
-}
 $pw = $Password
-if (-not $Quiet) { $pw = AskPassword "密碼？（$(@($Files).Count) 個檔案共用）"; if ($null -eq $pw) { exit 0 } }
+if (-not $Quiet) { $pw = Ask-Password "解壓密碼（$(@($Files).Count) 個檔案共用）"; if ($null -eq $pw) { exit 0 } }
 
-# multi-part rars: only extract part1 (7-Zip pulls in the rest), move all parts afterwards
-$files = @($Files | Where-Object { $_ -notmatch '\.part0*([2-9]|\d{2,})\.rar$' })
+$isFirstPart = { param($p) $p -notmatch '\.part0*([2-9]|\d{2,})\.rar$' }   # multi-part rar: 7-Zip only needs part1
+function Parts($arc) { if ($arc -match '^(.*)\.part0*1\.rar$') { @(Get-ChildItem -LiteralPath (Split-Path $arc) -Filter "$(Split-Path $Matches[1] -Leaf).part*.rar" | ForEach-Object FullName) } else { @($arc) } }
+
+# Extract $arc into $out. Tries the chosen password, then every remembered one, then asks. Returns $true on success.
+function Expand-Archive7z($arc, $out) {
+  $tries = @($pw) + @(Get-SavedPasswords | Where-Object { $_ -ne $pw })
+  foreach ($p in $tries) {
+    $log = & $7z x $arc "-o$out" "-p$p" -y 2>&1 | Out-String   # always pass -p so 7-Zip never waits on the console
+    if ($LASTEXITCODE -eq 0) { return $true }
+    Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue   # our own half-extracted folder only
+    if ($log -notmatch 'Wrong password|encrypted') { return $false }               # broken file / no space: don't keep trying passwords
+  }
+  if ($Quiet) { return $false }
+  $p2 = Ask-Password "$(Split-Path $arc -Leaf) 密碼唔啱" '再試一次？'
+  if (-not $p2) { return $false }
+  & $7z x $arc "-o$out" "-p$p2" -y | Out-Null
+  if ($LASTEXITCODE -eq 0) { return $true }
+  Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue; return $false
+}
+function Move-ToZips($arc, $zipDir) {
+  New-Item -ItemType Directory -Force $zipDir | Out-Null
+  foreach ($p in (Parts $arc)) { if ((Test-Path -LiteralPath $p) -and -not (Test-Path -LiteralPath (Join-Path $zipDir (Split-Path $p -Leaf)))) { Move-Item -LiteralPath $p $zipDir } }
+}
+function Free-Path($path) { $n = 2; $p = $path; while (Test-Path -LiteralPath $p) { $p = "$path ($n)"; $n++ }; $p }  # never overwrite
+
+$files = @($Files | Where-Object { & $isFirstPart $_ })
 $ok = @(); $bad = @(); $i = 0
-
 foreach ($arc in $files) {
   $i++
   Write-Host "[$i/$($files.Count)] 解壓緊 $(Split-Path $arc -Leaf) ..."
   $name = [IO.Path]::GetFileNameWithoutExtension($arc) -replace '\.part0*1$', ''
   $tmp = Join-Path $Root "_importing_$([guid]::NewGuid().ToString('N').Substring(0,8))"
-  $log = & $7z x $arc "-o$tmp" "-p$pw" -y 2>&1 | Out-String  # always pass -p so 7-Zip never waits on the console
-  if ($LASTEXITCODE -ne 0 -and -not $Quiet -and $log -match 'Wrong password|encrypted') {
-    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
-    $p2 = AskPassword "$(Split-Path $arc -Leaf) 密碼唔啱，再試？"
-    if ($p2) { & $7z x $arc "-o$tmp" "-p$p2" -y | Out-Null }
-  }
-  if ($LASTEXITCODE -ne 0) {
-    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue  # our own half-extracted temp only
-    $bad += "$(Split-Path $arc -Leaf)（可能要密碼、檔案壞咗或者唔夠位）"; continue
-  }
+  if (-not (Expand-Archive7z $arc $tmp)) { $bad += "$(Split-Path $arc -Leaf)（密碼唔啱、檔案壞咗或者唔夠位）"; continue }
   # descend while there is exactly one folder and nothing else
   $src = $tmp
   while ($true) {
-    $items = @(Get-ChildItem $src -Force | Where-Object Name -ne '__MACOSX')
+    $items = @(Get-ChildItem -LiteralPath $src -Force | Where-Object Name -ne '__MACOSX')
     if ($items.Count -eq 1 -and $items[0].PSIsContainer) { $src = $items[0].FullName } else { break }
   }
   if ($src -ne $tmp) { $name = Split-Path $src -Leaf }
-  $dest = Join-Path $Root $name; $n = 2
-  while (Test-Path $dest) { $dest = Join-Path $Root "$name ($n)"; $n++ }  # never overwrite an existing game
-  Move-Item $src $dest
-  if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+  $dest = Free-Path (Join-Path $Root $name)
+  Move-Item -LiteralPath $src $dest
+  if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force }
+  $zipDir = Join-Path $Zips (Split-Path $dest -Leaf)
+  Move-ToZips $arc $zipDir
 
-  $zipDir = Join-Path $Zips (Split-Path $dest -Leaf)  # archives live in <Zips>\<game>
-  New-Item -ItemType Directory -Force $zipDir | Out-Null
-  $parts = @($arc)
-  if ($arc -match '^(.*)\.part0*1\.rar$') { $parts = @(Get-ChildItem "$($Matches[1]).part*.rar" | ForEach-Object FullName) }
-  foreach ($p in $parts) { if (-not (Test-Path (Join-Path $zipDir (Split-Path $p -Leaf)))) { Move-Item $p $zipDir } }
+  # archives inside the extracted game: list them, extract the ones picked, and look again inside those
+  $scan = @($dest); $asked = @{}
+  while ($scan.Count -and -not $Quiet) {
+    $found = @(foreach ($d in $scan) { Get-ChildItem -LiteralPath $d -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.zip', '.rar', '.7z' -and (& $isFirstPart $_.FullName) -and -not $asked[$_.FullName] } })
+    $scan = @()
+    if (-not $found.Count) { break }
+    foreach ($f in $found) { $asked[$f.FullName] = $true }
+    $rel = @($found | ForEach-Object { $_.FullName.Substring($dest.Length + 1) })
+    $pick = Select-UiItems "$(Split-Path $dest -Leaf)：入面仲有壓縮檔" "解壓完發現入面仲有 $($found.Count) 個壓縮檔。剔咗嘅會再解壓（壓縮檔之後搬入 Game Zips）。`n遊戲本身用嘅資料檔可以唔剔。" $rel
+    if (-not $pick) { break }
+    foreach ($r in $pick) {
+      $inner = Join-Path $dest $r
+      $out = Free-Path (Join-Path (Split-Path $inner) ([IO.Path]::GetFileNameWithoutExtension($inner) -replace '\.part0*1$', ''))
+      if (Expand-Archive7z $inner $out) { Move-ToZips $inner $zipDir; $scan += $out } else { $bad += "$r（喺 $(Split-Path $dest -Leaf) 入面）" }
+    }
+  }
   $ok += Split-Path $dest -Leaf
 }
 
 $msg = "匯入咗 $($ok.Count) 隻：`n" + ($ok -join "`n")
 if ($bad) { $msg += "`n`n失敗（原本個壓縮檔冇郁過）：`n" + ($bad -join "`n") }
+if ($ok) { $msg += "`n`n新遊戲會喺遊戲庫等你檢查同確認先加入。" }
 Say $msg

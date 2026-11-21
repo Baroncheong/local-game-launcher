@@ -1,6 +1,6 @@
 ﻿# Pick an image and use it as a game's cover: copied to covers\<game name>.<ext>, replacing the old cover.
 param([Parameter(Mandatory)][string]$Name, [string]$Image)  # -Image: skip the dialog (testing)
-Add-Type -AssemblyName System.Windows.Forms
+. "$PSScriptRoot\ui.ps1"
 $covers = Join-Path $PSScriptRoot 'covers'
 if (-not $Image) {
   $dlg = New-Object System.Windows.Forms.OpenFileDialog
@@ -10,7 +10,7 @@ if (-not $Image) {
   $Image = $dlg.FileName
 }
 $ext = [IO.Path]::GetExtension($Image).ToLower()
-if ($ext -notin '.jpg', '.jpeg', '.png', '.gif', '.webp') { [System.Windows.Forms.MessageBox]::Show('只支援 jpg / png / gif / webp。', '換封面') | Out-Null; exit 1 }
+if ($ext -notin '.jpg', '.jpeg', '.png', '.gif', '.webp') { Show-UiMessage '只支援 jpg / png / gif / webp。' '換封面'; exit 1 }
 New-Item -ItemType Directory -Force $covers | Out-Null
 $dest = Join-Path $covers "$Name$ext"
 Copy-Item -LiteralPath $Image $dest -Force
