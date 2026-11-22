@@ -102,6 +102,7 @@
       <div id="bar">
         <button class="btn play" onclick="run(cur)">▶ 開始遊戲</button>
         <button class="btn big" id="mtoolBtn" onclick="runMTool(cur)">用 MTool 開</button>
+        <span class="stat" id="verBox" style="display:none"><div class="k">版本</div><div class="v"><select id="verSel" onchange="pickVersion(this)" style="max-width:340px;font-size:13px;padding:3px 6px"></select></div></span>
         <span class="stat"><div class="k">上次遊玩</div><div class="v" id="sLast"></div></span>
         <span class="stat"><div class="k">遊玩時間</div><div class="v" id="sTime"></div></span>
         <span class="stat"><div class="k">類別</div><div class="v" id="sCat"></div></span>
@@ -237,6 +238,7 @@ var I18N = {
   "隱藏名包含以下字嘅資料夾（正規表示式，可留空）": ["Hide folders whose name matches (regular expression, optional)", "隐藏名称包含以下文字的文件夹（正则表达式，可留空）", "名前がこれに一致するフォルダーを隠す（正規表現・任意）"],
   "★ 偵測到 {0} 隻新遊戲，撳呢度檢查同確認": ["★ {0} new games found, click to review", "★ 检测到 {0} 个新游戏，点这里检查并确认", "★ 新しいゲームが {0} 本見つかりました。クリックして確認"],
   "類別": ["CATEGORY", "分类", "カテゴリ"],
+  "版本": ["VERSION", "版本", "バージョン"],
   "語言 Language": ["Language", "语言 Language", "言語 Language"]
 };
 var LANG_IX = { "en": 0, "zh-CN": 1, "ja": 2 }, I18N_RX = [];
@@ -335,9 +337,22 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 // ---- library scan ----
 // games.txt (UTF-16): folder<TAB>ok|hidden<TAB>name<TAB>exe<TAB>category  (empty field = use what was detected)
 var games = [], cats = [], pending = [], OVR; // cats: [{label, root (index or -1), ids}]
+var VER; // versions.txt (UTF-16): game folder<TAB>chosen version subfolder
+function findVersions(dir) {
+  var f = fso.GetFolder(dir), e, out = [];
+  for (e = new Enumerator(f.Files); !e.atEnd(); e.moveNext()) if (/\.(exe|lnk)$/i.test(e.item().Name)) return out; // runnable at top level: one version
+  for (e = new Enumerator(f.SubFolders); !e.atEnd(); e.moveNext()) { var t = pickTarget(e.item().Path); if (t) out.push({ label: e.item().Name, target: t }); }
+  out.sort(function (a, b) { return (/^DLC/i.test(a.label) ? 1 : 0) - (/^DLC/i.test(b.label) ? 1 : 0); }); // main game first, like pickTarget
+  return out;
+}
+function pickVersion(sel) {
+  var g = games[cur], v = g.versions[sel.selectedIndex];
+  g.target = v.target; tsvSet(VER, g.key, [v.label]); writeTsv("versions.txt", VER);
+  $("gpath").innerText = g.target; $("msg").innerText = "";
+}
 function rootLabel(label) { for (var r = 0; r < CFG.roots.length; r++) if (CFG.roots[r][0] == label) return r; return -1; }
 function scan() {
-  OVR = readTsv("games.txt");
+  OVR = readTsv("games.txt"); VER = readTsv("versions.txt");
   var firstRun = !fso.FileExists(APP + "\\games.txt"), found = [], x, r;
   for (r = 0; r < CFG.roots.length; r++) {
     if (!fso.FolderExists(CFG.roots[r][1])) continue;
@@ -355,7 +370,14 @@ function scan() {
       if (o[0] == "hidden") continue;
       var target = o[2] && fso.FileExists(o[2]) ? o[2] : pickTarget(d.Path);
       if (!target) continue;
-      found.push({ name: o[1] || d.Name, target: target, dir: d.Path, cat: o[3] || CFG.roots[r][0], kind: "root", key: d.Path });
+      var g0 = { name: o[1] || d.Name, target: target, dir: d.Path, cat: o[3] || CFG.roots[r][0], kind: "root", key: d.Path };
+      // versions: a game folder with no exe of its own whose subfolders each hold a runnable copy (v1, Append.1, ...)
+      var vers = findVersions(d.Path);
+      if (vers.length > 1) {
+        g0.versions = vers; var pick = VER[d.Path] && VER[d.Path][0];
+        for (var vi = 0; vi < vers.length; vi++) if (vers[vi].label == pick) g0.target = vers[vi].target;
+      }
+      found.push(g0);
     }
   }
   if (firstRun) writeTsv("games.txt", OVR);
@@ -441,6 +463,9 @@ function showGame(i) {
   $("hero").innerHTML = g.cover ? "<img src=\"" + esc(g.cover) + "\">" : esc(g.name);
   $("hero").oncontextmenu = function () { return ctxMenu(cur); };
   $("gname").innerText = g.name; $("sCat").innerText = g.cat; $("gpath").innerText = g.target;
+  var vh = "";
+  if (g.versions) for (var vi = 0; vi < g.versions.length; vi++) vh += "<option" + (g.versions[vi].target == g.target ? " selected" : "") + ">" + esc(g.versions[vi].label) + "</option>";
+  $("verSel").innerHTML = vh; $("verBox").style.display = g.versions ? "" : "none";
   var st = readTsv("playtime.txt")[g.name] || [];   // [seconds, last played]  (written by play.ps1)
   $("sTime").innerText = fmtTime(st[0]); $("sLast").innerText = st[1] || "未玩過";
   var d = readTsv("descriptions.txt")[g.name];

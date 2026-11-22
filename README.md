@@ -17,6 +17,7 @@ The interface is available in Traditional Chinese (Cantonese, default), Simplifi
 - **Right-click menu**: right-click any game (in the list, the grid or its page) for Play, Start with MTool, Open file location, Copy path, Properties, Change cover, Edit description, Rename, Remove from library and Uninstall.
 - **Rename / remove / uninstall**: renaming only changes the name shown in the launcher (the folder stays as it is; cover, play time and description follow the new name). Remove hides a game without touching its files and can be undone in ⚙ Settings. Uninstall shows the folder and its size, asks to confirm, then moves the folder to the Recycle Bin.
 - **Review new games**: when the launcher finds new folders in your games folders, it lists them first. Check the name, which exe to start and the category, untick anything that is not a game, then confirm. Nothing new is added to the library until you confirm.
+- **Several versions of one game**: put each version in its own subfolder of the game's folder (for example `Game\v1.0`, `Game\DLC - Append.1`). The game shows as one card, and its page has a **Version** list to pick which one to start; the choice is remembered.
 - **Play time**: games started from the launcher record when they were last played and for how long. A game that relaunches itself through another program may be under-counted.
 - **Import archives**: pick one or more zip/rar/7z files, with an optional password. They are extracted into a games folder, extra wrapper folders are removed, and the archive is moved to your archive folder (`Game Zips\<game>` by default). If the extracted game contains more archives, they are listed so you can pick which to extract too, and this repeats for archives inside those. Passwords can be remembered (encrypted for your Windows account in `passwords.dat`); remembered ones are offered in a list and tried automatically.
 - **Add by exe**: add a game that lives anywhere by picking its exe, and choose which category it appears under. Nothing is moved. Each category also has a **＋** button that adds a game straight into it.
@@ -73,6 +74,7 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 - **右鍵選單**：在清單、封面格或遊戲頁上對遊戲按右鍵，可以開始遊戲、用 MTool 開、打開檔案位置、複製路徑、內容、換封面、編輯簡介、改名、從遊戲庫移除、解除安裝。
 - **改名／移除／解除安裝**：改名只會改啟動器顯示的名稱，資料夾不會變；封面、遊玩時間和簡介會跟著新名稱。移除只會把遊戲從遊戲庫隱藏，不會刪檔案，可以在 ⚙ 設定裡還原。解除安裝會先顯示資料夾和大小，確認後才把資料夾放進資源回收筒。
 - **檢查新遊戲**：啟動器在遊戲資料夾找到新資料夾時，會先列出來給你檢查名稱、用哪個 exe 開和類別，不是遊戲的可以取消勾選，確認後才會加入遊戲庫。
+- **同一隻遊戲多個版本**：把每個版本放在遊戲資料夾裡各自的子資料夾（例如 `Game\v1.0`、`Game\DLC - Append.1`）。遊戲庫只會顯示一張卡，遊戲頁有 **版本** 選單讓你選要開哪一個，選擇會被記住。
 - **遊玩時間**：從啟動器開的遊戲會記錄上次遊玩的時間和玩了多久。如果遊戲會經另一個程式重新啟動，時間可能會少算。
 - **匯入壓縮檔**：一次選一個或多個 zip/rar/7z，可以輸入密碼。它會解壓到遊戲資料夾、拿走多餘的外層資料夾，再把壓縮檔搬到你的壓縮檔資料夾（預設是 `Game Zips\<遊戲名>`）。如果解壓後裡面還有壓縮檔，會列出來讓你選要不要再解壓，裡面再有的話會重複這個步驟。密碼可以記住（用你的 Windows 帳戶加密，存在 `passwords.dat`），之後會列出來給你選，也會自動試。
 - **用 exe 加遊戲**：遊戲放在任何地方都可以，選它的 exe 就能加入，還可以選它顯示在哪個類別。遊戲不會被搬走。每個類別旁邊也有一個 **＋** 按鈕，可以直接把遊戲加進該類別。
