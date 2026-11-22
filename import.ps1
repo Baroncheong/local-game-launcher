@@ -3,20 +3,20 @@
 param([Parameter(Mandatory)][string]$Root, [string[]]$Files, [switch]$Quiet, [string]$Password = '', [string]$Zips = (Join-Path $PSScriptRoot 'Game Zips'))  # -Files/-Quiet: skip dialogs (testing)
 . "$PSScriptRoot\ui.ps1"
 $7z = 'C:\Program Files\7-Zip\7z.exe'
-function Say($m) { if ($Quiet) { Write-Host $m } else { Show-UiMessage $m '匯入遊戲' } }
-if (-not (Test-Path $7z)) { Say "搵唔到 7-Zip：$7z"; exit 1 }
+function Say($m) { if ($Quiet) { Write-Host $m } else { Show-UiMessage $m (T '匯入遊戲') } }
+if (-not (Test-Path $7z)) { Say (T '搵唔到 7-Zip：{0}' $7z); exit 1 }
 
 if (-not $Files) {
   $dlg = New-Object System.Windows.Forms.OpenFileDialog
-  $dlg.Title = "揀遊戲壓縮檔，可以一次揀幾個（會解壓去 $Root）"
-  $dlg.Filter = '壓縮檔|*.zip;*.rar;*.7z|全部|*.*'
+  $dlg.Title = T '揀遊戲壓縮檔，可以一次揀幾個（會解壓去 {0}）' $Root
+  $dlg.Filter = (T '壓縮檔') + '|*.zip;*.rar;*.7z|' + (T '全部') + '|*.*'
   $dlg.Multiselect = $true
   $dlg.InitialDirectory = "$env:USERPROFILE\Downloads"
   if ($dlg.ShowDialog() -ne 'OK') { exit 0 }
   $Files = $dlg.FileNames
 }
 $pw = $Password
-if (-not $Quiet) { $pw = Ask-Password "解壓密碼（$(@($Files).Count) 個檔案共用）"; if ($null -eq $pw) { exit 0 } }
+if (-not $Quiet) { $pw = Ask-Password (T '解壓密碼（{0} 個檔案共用）' @($Files).Count); if ($null -eq $pw) { exit 0 } }
 
 $isFirstPart = { param($p) $p -notmatch '\.part0*([2-9]|\d{2,})\.rar$' }   # multi-part rar: 7-Zip only needs part1
 function Parts($arc) { if ($arc -match '^(.*)\.part0*1\.rar$') { @(Get-ChildItem -LiteralPath (Split-Path $arc) -Filter "$(Split-Path $Matches[1] -Leaf).part*.rar" | ForEach-Object FullName) } else { @($arc) } }
@@ -31,7 +31,7 @@ function Expand-Archive7z($arc, $out) {
     if ($log -notmatch 'Wrong password|encrypted') { return $false }               # broken file / no space: don't keep trying passwords
   }
   if ($Quiet) { return $false }
-  $p2 = Ask-Password "$(Split-Path $arc -Leaf) 密碼唔啱" '再試一次？'
+  $p2 = Ask-Password (T '{0} 密碼唔啱' (Split-Path $arc -Leaf)) (T '再試一次？')
   if (-not $p2) { return $false }
   & $7z x $arc "-o$out" "-p$p2" -y | Out-Null
   if ($LASTEXITCODE -eq 0) { return $true }
@@ -47,10 +47,10 @@ $files = @($Files | Where-Object { & $isFirstPart $_ })
 $ok = @(); $bad = @(); $i = 0
 foreach ($arc in $files) {
   $i++
-  Write-Host "[$i/$($files.Count)] 解壓緊 $(Split-Path $arc -Leaf) ..."
+  Write-Host (T '[{0}/{1}] 解壓緊 {2} ...' $i $files.Count (Split-Path $arc -Leaf))
   $name = [IO.Path]::GetFileNameWithoutExtension($arc) -replace '\.part0*1$', ''
   $tmp = Join-Path $Root "_importing_$([guid]::NewGuid().ToString('N').Substring(0,8))"
-  if (-not (Expand-Archive7z $arc $tmp)) { $bad += "$(Split-Path $arc -Leaf)（密碼唔啱、檔案壞咗或者唔夠位）"; continue }
+  if (-not (Expand-Archive7z $arc $tmp)) { $bad += T '{0}（密碼唔啱、檔案壞咗或者唔夠位）' (Split-Path $arc -Leaf); continue }
   # descend while there is exactly one folder and nothing else
   $src = $tmp
   while ($true) {
@@ -72,18 +72,18 @@ foreach ($arc in $files) {
     if (-not $found.Count) { break }
     foreach ($f in $found) { $asked[$f.FullName] = $true }
     $rel = @($found | ForEach-Object { $_.FullName.Substring($dest.Length + 1) })
-    $pick = Select-UiItems "$(Split-Path $dest -Leaf)：入面仲有壓縮檔" "解壓完發現入面仲有 $($found.Count) 個壓縮檔。剔咗嘅會再解壓（壓縮檔之後搬入 Game Zips）。`n遊戲本身用嘅資料檔可以唔剔。" $rel
+    $pick = Select-UiItems (T '{0}：入面仲有壓縮檔' (Split-Path $dest -Leaf)) (T "解壓完發現入面仲有 {0} 個壓縮檔。剔咗嘅會再解壓（壓縮檔之後搬入 Game Zips）。`n遊戲本身用嘅資料檔可以唔剔。" $found.Count) $rel
     if (-not $pick) { break }
     foreach ($r in $pick) {
       $inner = Join-Path $dest $r
       $out = Free-Path (Join-Path (Split-Path $inner) ([IO.Path]::GetFileNameWithoutExtension($inner) -replace '\.part0*1$', ''))
-      if (Expand-Archive7z $inner $out) { Move-ToZips $inner $zipDir; $scan += $out } else { $bad += "$r（喺 $(Split-Path $dest -Leaf) 入面）" }
+      if (Expand-Archive7z $inner $out) { Move-ToZips $inner $zipDir; $scan += $out } else { $bad += T '{0}（喺 {1} 入面）' $r (Split-Path $dest -Leaf) }
     }
   }
   $ok += Split-Path $dest -Leaf
 }
 
-$msg = "匯入咗 $($ok.Count) 隻：`n" + ($ok -join "`n")
-if ($bad) { $msg += "`n`n失敗（原本個壓縮檔冇郁過）：`n" + ($bad -join "`n") }
-if ($ok) { $msg += "`n`n新遊戲會喺遊戲庫等你檢查同確認先加入。" }
+$msg = (T "匯入咗 {0} 隻：`n" $ok.Count) + ($ok -join "`n")
+if ($bad) { $msg += (T "`n`n失敗（原本個壓縮檔冇郁過）：`n") + ($bad -join "`n") }
+if ($ok) { $msg += T "`n`n新遊戲會喺遊戲庫等你檢查同確認先加入。" }
 Say $msg

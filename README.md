@@ -6,7 +6,7 @@
 
 A tiny, offline game library for Windows. Point it at the folders where your games live and it shows every game as a cover card; click one to start it. No install, no account, no internet needed.
 
-The interface text is in Traditional Chinese (Cantonese).
+The interface is available in Traditional Chinese (Cantonese, default), Simplified Chinese, English and Japanese: pick one in **⚙ Settings → Language**.
 
 ### Features
 
@@ -62,7 +62,7 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /
 
 一個細小、完全離線的 Windows 遊戲庫。告訴它你的遊戲放在哪些資料夾，它就會把每隻遊戲顯示成一張封面卡，點一下就能開遊戲。不用安裝、不用帳戶、不用上網。
 
-介面文字是繁體中文（粵語）。
+介面支援繁體中文（粵語，預設）、簡體中文、英文和日文，可以在 **⚙ 設定 → 語言** 切換。
 
 ### 功能
 

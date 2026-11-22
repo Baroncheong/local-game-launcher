@@ -140,6 +140,7 @@
 </div></div>
 <div id="settings" class="overlay"><div class="panel" style="width:640px;margin:50px auto;font-size:13px;max-height:85%;overflow-y:auto">
   <div class="dtitle">// 設定 SETTINGS</div>
+  語言 Language<br><select id="sLang" style="width:100%;margin-bottom:10px"><option value="zh-TW">繁體中文（廣東話）</option><option value="zh-CN">简体中文</option><option value="en">English</option><option value="ja">日本語</option></select>
   標題<br><input id="sTitle" style="width:100%;margin-bottom:10px">
   遊戲資料夾（每行一個：顯示名|資料夾）<button class="btn" onclick="browseRoot()">＋ 揀資料夾</button><br>
   <textarea id="sRoots" rows="5" style="width:100%;margin:4px 0 10px"></textarea>
@@ -163,7 +164,106 @@ var SKIP_EXE = /^(UnityCrashHandler|Config|notification_helper|Setup|unins|crash
 var OTHER = "其他";
 
 // config.txt (UTF-8): title=, root=Label|Folder (repeatable), zips=, mtool=, hide= (regex of folder names to skip)
-var CFG = { title: "Local Game Launcher", roots: [], zips: APP + "\\Game Zips", mtool: "", hide: null };
+var CFG = { title: "Local Game Launcher", roots: [], zips: APP + "\\Game Zips", mtool: "", hide: null, lang: "zh-TW" };
+
+// ---- interface language: the page is written in Traditional Chinese (Cantonese); text is swapped as it appears ----
+// key = original text (a "{0}" matches any text), value = [English, Simplified Chinese, Japanese]
+var I18N = {
+  "（搵唔到 exe）": ["(no exe found)", "（找不到 exe）", "（exe が見つかりません）"],
+  "// 自動偵測到嘅新遊戲": ["// Newly detected games", "// 自动检测到的新游戏", "// 新しく見つかったゲーム"],
+  "// 設定 SETTINGS": ["// SETTINGS", "// 设置 SETTINGS", "// 設定 SETTINGS"],
+  "＋ 揀 exe 加遊戲": ["＋ Add game by exe", "＋ 选 exe 添加游戏", "＋ exe からゲーム追加"],
+  "＋ 揀資料夾": ["＋ Pick folder", "＋ 选择文件夹", "＋ フォルダーを選ぶ"],
+  "▣ 主頁 HOME": ["▣ HOME", "▣ 主页 HOME", "▣ ホーム HOME"],
+  "▶ 開始遊戲": ["▶ PLAY", "▶ 开始游戏", "▶ プレイ"],
+  "⚙ 設定": ["⚙ Settings", "⚙ 设置", "⚙ 設定"],
+  "MTool 資料夾（留空就唔顯示 MTool）": ["MTool folder (leave empty to hide MTool)", "MTool 文件夹（留空则不显示 MTool）", "MTool フォルダー（空欄なら MTool を表示しません）"],
+  "上次遊玩": ["LAST PLAYED", "上次游玩", "最終プレイ"],
+  "儲存": ["Save", "保存", "保存"],
+  "儲存簡介": ["Save description", "保存简介", "説明を保存"],
+  "內容（遊戲頁）": ["Properties (game page)", "属性（游戏页）", "プロパティ（ゲームページ）"],
+  "其他": ["Other", "其他", "その他"],
+  "加入": ["Add", "加入", "追加"],
+  "加遊戲入呢欄": ["Add a game to this group", "添加游戏到此分类", "このグループにゲームを追加"],
+  "匯入 zip → {0}": ["Import zip → {0}", "导入 zip → {0}", "zip を取り込む → {0}"],
+  "取消": ["Cancel", "取消", "キャンセル"],
+  "只係改遊戲庫顯示嘅名，資料夾唔會郁：{0}": ["Only the name shown in the launcher changes; the folder stays: {0}", "只修改游戏库显示的名称，文件夹不会变动：{0}", "ランチャーでの表示名だけを変えます。フォルダーはそのままです：{0}"],
+  "名": ["Name", "名称", "名前"],
+  "啟動緊：{0}": ["Starting: {0}", "正在启动：{0}", "起動中：{0}"],
+  "啱啱": ["Just now", "刚刚", "たった今"],
+  "壓縮檔存放位置（匯入 zip 後搬去呢度）": ["Archive folder (imported zips are moved here)", "压缩包存放位置（导入后移到这里）", "アーカイブの保存先（取り込んだ zip をここに移動）"],
+  "好": ["OK", "好", "OK"],
+  "{0} 小時 {1} 分鐘": ["{0} h {1} min", "{0} 小时 {1} 分钟", "{0} 時間 {1} 分"],
+  "{0} 分鐘": ["{0} min", "{0} 分钟", "{0} 分"],
+  "少過 1 分鐘": ["Under 1 min", "不到 1 分钟", "1 分未満"],
+  "已經有一隻遊戲叫「{0}」。": ["A game called \"{0}\" already exists.", "已经有一个游戏叫「{0}」。", "「{0}」というゲームはすでにあります。"],
+  "已經移除嘅遊戲（檔案仲喺度）": ["Removed games (files are still there)", "已移除的游戏（文件还在）", "削除したゲーム（ファイルは残っています）"],
+  "已複製路徑": ["Path copied", "已复制路径", "パスをコピーしました"],
+  "從遊戲庫移除": ["Remove from library", "从游戏库移除", "ライブラリから外す"],
+  "打開封面資料夾": ["Open covers folder", "打开封面文件夹", "カバーフォルダーを開く"],
+  "打開檔案位置": ["Open file location", "打开文件位置", "ファイルの場所を開く"],
+  "打開遊戲資料夾": ["Open game folder", "打开游戏文件夹", "ゲームフォルダーを開く"],
+  "開緊 MTool：將 {0} 拖入 MTool，或者喺 MTool 揀遊戲時 Ctrl+V 貼上路徑（已複製）": ["Opening MTool: drag {0} into MTool, or press Ctrl+V when MTool asks for the game (path copied)", "正在打开 MTool：把 {0} 拖进 MTool，或在 MTool 选择游戏时按 Ctrl+V 粘贴路径（已复制）", "MTool を起動中：{0} を MTool にドラッグするか、ゲーム選択時に Ctrl+V で貼り付けてください（パスはコピー済み）"],
+  "揀": ["Pick", "选择", "選ぶ"],
+  "揀資料夾": ["Pick a folder", "选择文件夹", "フォルダーを選択"],
+  "換封面": ["Change cover", "更换封面", "カバーを変更"],
+  "搵唔到 MTool：{0}": ["MTool not found: {0}", "找不到 MTool：{0}", "MTool が見つかりません：{0}"],
+  "搵遊戲…": ["Search games…", "搜索游戏…", "ゲームを検索…"],
+  "改名": ["Rename", "重命名", "名前を変更"],
+  "新嘅名：": ["New name:", "新名称：", "新しい名前："],
+  "未有簡介。撳右邊 ⚙ →「編輯簡介」可以自己寫。": ["No description yet. Click ⚙ on the right → \"Edit description\" to write one.", "还没有简介。点右边的 ⚙ →「编辑简介」可以自己写。", "説明はまだありません。右の ⚙ →「説明を編集」で書けます。"],
+  "未有遊戲。撳「⚙ 設定」加遊戲資料夾，或者撳「＋ 揀 exe 加遊戲」。": ["No games yet. Add a games folder in \"⚙ Settings\", or click \"＋ Add game by exe\".", "还没有游戏。在「⚙ 设置」添加游戏文件夹，或点「＋ 选 exe 添加游戏」。", "ゲームがありません。「⚙ 設定」でゲームフォルダーを追加するか、「＋ exe からゲーム追加」を押してください。"],
+  "未玩過": ["Never", "未玩过", "未プレイ"],
+  "標題": ["Title", "标题", "タイトル"],
+  "檔案": ["Files", "文件", "ファイル"],
+  "檔案同設定": ["Files and settings", "文件和设置", "ファイルと設定"],
+  "檢查吓有冇偵測錯。可以改名、改用邊個 exe 開、改類別，唔係遊戲嘅就唔好剔。撳「確認加入」之後先會放入遊戲庫。": ["Check whether anything was detected wrongly. You can change the name, the exe it starts with and the category; untick anything that is not a game. Nothing is added until you click \"Confirm\".", "检查一下有没有识别错。可以改名、改用哪个 exe 启动、改分类，不是游戏的就不要勾选。点「确认加入」后才会放进游戏库。", "誤検出がないか確認してください。名前・起動する exe・カテゴリを変更できます。ゲームでないものはチェックを外してください。「確定して追加」を押すまで追加されません。"],
+  "用 MTool 開": ["Start with MTool", "用 MTool 打开", "MTool で起動"],
+  "用邊個開": ["Start with", "用哪个打开", "起動ファイル"],
+  "確認加入": ["Confirm", "确认加入", "確定して追加"],
+  "移除": ["Remove", "移除", "外す"],
+  "簡介": ["Description", "简介", "説明"],
+  "編輯簡介": ["Edit description", "编辑简介", "説明を編集"],
+  "複製路徑": ["Copy path", "复制路径", "パスをコピー"],
+  "解除安裝（刪除遊戲）": ["Uninstall (delete game)", "卸载（删除游戏）", "アンインストール（ゲームを削除）"],
+  "將「{0}」由遊戲庫拎走？": ["Remove \"{0}\" from the library?", "把「{0}」从游戏库移除？", "「{0}」をライブラリから外しますか？"],
+  "遊戲檔案唔會刪，之後可以喺「⚙ 設定」度還原。": ["The game files are not deleted; you can restore it in \"⚙ Settings\".", "游戏文件不会删除，之后可以在「⚙ 设置」里还原。", "ゲームのファイルは削除されません。「⚙ 設定」で元に戻せます。"],
+  "遊戲檔案唔會刪，之後可以喺「⚙ 設定」度還原，或者再用「＋」加返。": ["The game files are not deleted; restore it in \"⚙ Settings\" or add it again with \"＋\".", "游戏文件不会删除，之后可以在「⚙ 设置」里还原，或者再用「＋」加回来。", "ゲームのファイルは削除されません。「⚙ 設定」で戻すか「＋」で再追加できます。"],
+  "遊戲資料夾（每行一個：顯示名|資料夾）": ["Games folders (one per line: label|folder)", "游戏文件夹（每行一个：显示名|文件夹）", "ゲームフォルダー（1 行に 1 つ：表示名|フォルダー）"],
+  "遊玩時間": ["PLAY TIME", "游玩时间", "プレイ時間"],
+  "遲啲先": ["Later", "稍后再说", "あとで"],
+  "還原": ["Restore", "还原", "元に戻す"],
+  "開 MTool": ["Open MTool", "打开 MTool", "MTool を開く"],
+  "隱藏名包含以下字嘅資料夾（正規表示式，可留空）": ["Hide folders whose name matches (regular expression, optional)", "隐藏名称包含以下文字的文件夹（正则表达式，可留空）", "名前がこれに一致するフォルダーを隠す（正規表現・任意）"],
+  "★ 偵測到 {0} 隻新遊戲，撳呢度檢查同確認": ["★ {0} new games found, click to review", "★ 检测到 {0} 个新游戏，点这里检查并确认", "★ 新しいゲームが {0} 本見つかりました。クリックして確認"],
+  "類別": ["CATEGORY", "分类", "カテゴリ"],
+  "語言 Language": ["Language", "语言 Language", "言語 Language"]
+};
+var LANG_IX = { "en": 0, "zh-CN": 1, "ja": 2 }, I18N_RX = [];
+for (var k0 in I18N) if (k0.indexOf("{0}") >= 0)
+  I18N_RX.push([new RegExp("^" + k0.replace(/[.*+?^$()|[\]\\]/g, "\\$&").replace(/\{(\d)\}/g, "(.+?)") + "$"), k0]);
+function T(s) { // translate one whole text (trimmed); unknown text is returned as is
+  var ix = LANG_IX[CFG.lang]; if (ix === undefined || !s) return s;
+  var r = I18N[s]; if (r) return r[ix];
+  for (var i = 0; i < I18N_RX.length; i++) {
+    var m = I18N_RX[i][0].exec(s);
+    if (m) return I18N[I18N_RX[i][1]][ix].replace(/\{(\d)\}/g, function (a, n) { return m[+n + 1]; });
+  }
+  return s;
+}
+function trNode(n) {
+  if (n.nodeType == 3) { var v = n.nodeValue, t = v.replace(/^\s+|\s+$/g, ""); if (t) { var x = T(t); if (x !== t) n.nodeValue = v.replace(t, x); } return; }
+  if (n.nodeType != 1 || n.tagName == "SCRIPT" || n.tagName == "STYLE" || n.tagName == "TEXTAREA") return;
+  if (n.placeholder) n.placeholder = T(n.placeholder);
+  if (n.title) n.title = T(n.title);
+  for (var c = n.firstChild; c; c = c.nextSibling) trNode(c);
+}
+function startI18n() {
+  if (LANG_IX[CFG.lang] === undefined) return;
+  trNode(document.body);
+  try { new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var a = list[i].addedNodes; for (var j = 0; j < a.length; j++) trNode(a[j]); if (list[i].type == "characterData") trNode(list[i].target); } })
+          .observe(document.body, { childList: true, subtree: true, characterData: true }); } catch (e) {}
+}
 function readUtf8(path) {
   var s = new ActiveXObject("ADODB.Stream"); s.Type = 2; s.Charset = "utf-8"; s.Open(); s.LoadFromFile(path);
   var t = s.ReadText(); s.Close(); return t;
@@ -533,7 +633,7 @@ function openSettings() {
   var roots = [];
   for (var r = 0; r < CFG.roots.length; r++) roots.push(CFG.roots[r].join("|"));
   $("sTitle").value = CFG.title; $("sRoots").value = roots.join("\r\n"); $("sZips").value = CFG.zips;
-  $("sMtool").value = CFG.mtool; $("sHide").value = CFG.hide ? CFG.hide.source : "";
+  $("sMtool").value = CFG.mtool; $("sHide").value = CFG.hide ? CFG.hide.source : ""; $("sLang").value = CFG.lang;
   var h = "";
   for (var k = 0; k < OVR.__order.length; k++) {
     var key = OVR.__order[k], o = OVR[key];
@@ -555,14 +655,15 @@ function saveSettings() {
   var out = ["# Local Game Launcher settings (edited from the Settings window)", "title=" + v("sTitle")];
   var roots = $("sRoots").value.split(/\r?\n/);
   for (var i = 0; i < roots.length; i++) if (/\|/.test(roots[i])) out.push("root=" + roots[i].replace(/^\s+|\s+$/g, ""));
-  out.push("zips=" + v("sZips"), "mtool=" + v("sMtool"), "hide=" + v("sHide"));
+  out.push("zips=" + v("sZips"), "mtool=" + v("sMtool"), "hide=" + v("sHide"), "lang=" + $("sLang").value);
   var s = new ActiveXObject("ADODB.Stream"); s.Type = 2; s.Charset = "utf-8"; s.Open();
   s.WriteText(out.join("\r\n") + "\r\n"); s.SaveToFile(APP + "\\config.txt", 2); s.Close();
   location.reload();
 }
 
 try { window.moveTo(0, 0); window.resizeTo(screen.availWidth, screen.availHeight); } catch (e) {}
-loadConfig(); loadCollapsed(); scan(); buildButtons();
+loadConfig(); // helper scripts read lang= from config.txt themselves (ui.ps1)
+startI18n(); loadCollapsed(); scan(); buildButtons();
 (function () { // reopen the game that was showing before a reload
   var want = ""; try { want = decodeURIComponent(location.hash.replace(/^#/, "")); } catch (e) {}
   for (var i = 0; i < games.length; i++) if (want && games[i].name == want) return showGame(i);
